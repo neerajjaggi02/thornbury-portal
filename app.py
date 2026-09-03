@@ -1,12 +1,15 @@
 import streamlit as st
+import pandas as pd
+from streamlit_gsheets import GSheetsConnection
 import datetime
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="Thornbury Marketing Portal", layout="wide", page_icon="🏢")
 
-# --- INITIALIZE SESSION STATE (To save data between clicks) ---
-if 'questionnaire_saved' not in st.session_state:
-    st.session_state['questionnaire_saved'] = False
+# --- INITIALIZE DB CONNECTION ---
+conn = st.connection("gsheets", type=GSheetsConnection)
+
+# --- INITIALIZE SESSION STATE ---
 if 'reel_ideas' not in st.session_state:
     st.session_state['reel_ideas'] = []
 
@@ -24,33 +27,56 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "💼 4. Corporate B2B Launch"
 ])
 
-# --- TAB 1: DISCOVERY QUESTIONNAIRE ---
+# --- TAB 1: DISCOVERY QUESTIONNAIRE (CONNECTED TO GOOGLE SHEETS) ---
 with tab1:
     st.header("Brand & Operations Discovery")
     st.markdown("Help us understand the mechanics of your busy days so we can replicate them Monday to Thursday.")
     
     with st.form("discovery_form"):
         st.subheader("Brand Identity")
-        st.text_input("What 3 words define Thornbury Taphouse?", placeholder="e.g., Local, Vibrant, Comforting")
-        st.text_input("What 3 words define Thornbury Theatre?", placeholder="e.g., Historic, Energetic, Premium")
+        taphouse_words = st.text_input("What 3 words define Thornbury Taphouse?", placeholder="e.g., Local, Vibrant, Comforting")
+        theatre_words = st.text_input("What 3 words define Thornbury Theatre?", placeholder="e.g., Historic, Energetic, Premium")
         
         st.subheader("Target Audience")
-        st.multiselect("Who is your primary target for Monday–Wednesday dinners?", 
-                       ["Locals/Neighbors", "Office Workers", "Students", "Hospo/Industry Staff"])
+        target_audience = st.multiselect("Primary target for Monday–Wednesday dinners?", 
+                                       ["Locals/Neighbors", "Office Workers", "Students", "Hospo/Industry Staff"])
         
         st.subheader("Cloud Kitchen & Venue Capabilities")
-        st.text_area("Which delivery-only cloud kitchen items have the highest margins and re-order rates?", 
-                     placeholder="List 2-3 items we can feature as 'Secret Menu' dine-in exclusives.")
-        st.radio("Does the Theatre have a dedicated A/V technician available for Mon–Wed corporate events?",
-                 ["Yes, in-house", "Yes, on request", "No, client must provide"])
+        kitchen_items = st.text_area("Highest margin cloud kitchen items?", placeholder="List 2-3 items we can feature as 'Secret Menu' exclusives.")
+        av_tech = st.radio("A/V technician available?", ["Yes, in-house", "Yes, on request", "No"])
         
         st.subheader("Digital Assets")
-        st.text_input("Link to your high-res photos/logos (Google Drive, Dropbox, etc.)")
+        assets_link = st.text_input("Link to your high-res photos/logos (Google Drive, Dropbox, etc.)")
         
         submitted = st.form_submit_button("Save Responses")
+        
         if submitted:
-            st.session_state['questionnaire_saved'] = True
-            st.success("Your responses have been securely saved to the project board!")
+            # Structure the new data
+            new_data = {
+                "Timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Taphouse 3 Words": taphouse_words,
+                "Theatre 3 Words": theatre_words,
+                "Target Audience": ", ".join(target_audience),
+                "Cloud Kitchen Items": kitchen_items,
+                "A/V Tech": av_tech,
+                "Assets Link": assets_link
+            }
+            
+            # --- REPLACE THIS URL WITH YOUR ACTUAL GOOGLE SHEET URL ---
+            sheet_url = "https://docs.google.com/spreadsheets/d/1-2HTr0mOkl_Tis-ehO4apu8kqw4KSKPte_nq_ngTm5E/edit?gid=0#gid=0"
+            
+            try:
+                # Read existing sheet
+                existing_data = conn.read(spreadsheet=sheet_url, worksheet="Sheet1")
+                existing_data = existing_data.dropna(how="all") # Clean up empty rows
+                
+                # Append and update
+                updated_data = pd.concat([existing_data, pd.DataFrame([new_data])], ignore_index=True)
+                conn.update(spreadsheet=sheet_url, worksheet="Sheet1", data=updated_data)
+                
+                st.success("✅ Your responses have been permanently saved to the project board!")
+            except Exception as e:
+                st.error(f"Connection Error: {e}. Please check your Google Sheet URL and Secrets formatting.")
 
 # --- TAB 2: WEBSITE REVAMP ROADMAP ---
 with tab2:
@@ -121,6 +147,3 @@ with tab4:
     st.text_input("Package 1 Name:", value="The Townhall (Presentation + Drinks)")
     st.text_input("Package 2 Name:", value="The Offsite (Full Day + Lunch/Dinner)")
     st.text_input("Package 3 Name:", value="The End-of-Year Gala (Banquet + DJ)")
-    
-    st.markdown("---")
-    st.button("Request LinkedIn Outreach Scripts for these packages")

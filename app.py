@@ -888,155 +888,102 @@ with tabs[5]:
 
     st.header("🎬 Content Studio")
 
-    st.markdown(
-        "Plan, approve and track Instagram/Facebook/TikTok content."
-    )
-
     content_columns = [
-        "Timestamp",
-        "Brand",
-        "Content Type",
-        "Title",
-        "Hook",
-        "Platform",
-        "Status",
-        "Publish Date",
-        "Client Notes"
+        "Timestamp", "Brand", "Content Type", "Title", 
+        "Hook", "Platform", "Status", "Publish Date", "Client Notes"
     ]
+    
+    # Fetch data first so both views can use it
+    content_df = read_sheet("Content", content_columns)
 
-    # --------------------------------------------------------
-    # ADD CONTENT IDEA
-    # --------------------------------------------------------
+    # ========================================================
+    # 1. ADMIN CREATION FORM (Hidden from Client)
+    # ========================================================
+    if view_mode == "Marketing Manager":
+        
+        with st.form("content_form"):
+            st.subheader("➕ Draft New Content")
+            
+            brand = st.selectbox("Brand", ["Thornbury Taphouse", "Thornbury Theatre", "Both"])
+            content_type = st.selectbox("Content Type", ["Reel", "Carousel", "Photo", "Story", "Corporate", "UGC"])
+            title = st.text_input("Content Title")
+            hook = st.text_area("Hook / First 3 Seconds")
+            platform = st.multiselect("Platform", ["Instagram", "Facebook", "TikTok", "LinkedIn"])
+            
+            # Manager tags it as 'In Review' here to send it to the client's queue
+            status = st.selectbox("Status", ["Idea", "Draft", "In Review", "Changes Requested", "Approved", "Scheduled", "Published"])
+            
+            publish_date = st.date_input("Publish Date", value=date.today())
+            client_notes = st.text_area("Internal / Client Notes")
 
-    with st.form("content_form"):
+            content_submit = st.form_submit_button("💾 Save Content")
 
-        brand = st.selectbox(
-            "Brand",
-            [
-                "Thornbury Taphouse",
-                "Thornbury Theatre",
-                "Both"
-            ]
-        )
+            if content_submit and title:
+                row = {
+                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Brand": brand,
+                    "Content Type": content_type,
+                    "Title": title,
+                    "Hook": hook,
+                    "Platform": ", ".join(platform),
+                    "Status": status,
+                    "Publish Date": str(publish_date),
+                    "Client Notes": client_notes
+                }
 
-        content_type = st.selectbox(
-            "Content Type",
-            [
-                "Reel",
-                "Carousel",
-                "Photo",
-                "Story",
-                "Corporate",
-                "UGC",
-                "Behind the Scenes"
-            ]
-        )
+                if append_to_sheet("Content", row, content_columns):
+                    st.success("✅ Content idea saved.")
+                    st.rerun()
 
-        title = st.text_input(
-            "Content Title"
-        )
+        st.divider()
 
-        hook = st.text_area(
-            "Hook / First 3 Seconds"
-        )
-
-        platform = st.multiselect(
-            "Platform",
-            [
-                "Instagram",
-                "Facebook",
-                "TikTok",
-                "LinkedIn"
-            ]
-        )
-
-        status = st.selectbox(
-            "Status",
-            [
-                "Idea",
-                "Draft",
-                "In Review",
-                "Changes Requested",
-                "Approved",
-                "Scheduled",
-                "Published"
-            ]
-        )
-
-        publish_date = st.date_input(
-            "Publish Date",
-            value=date.today()
-        )
-
-        client_notes = st.text_area(
-            "Client Notes"
-        )
-
-        content_submit = st.form_submit_button(
-            "💾 Save Content"
-        )
-
-        if content_submit and title:
-
-            row = {
-                "Timestamp": datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
-                "Brand": brand,
-                "Content Type": content_type,
-                "Title": title,
-                "Hook": hook,
-                "Platform": ", ".join(platform),
-                "Status": status,
-                "Publish Date": str(publish_date),
-                "Client Notes": client_notes
-            }
-
-            if append_to_sheet(
-                "Content",
-                row,
-                content_columns
-            ):
-                st.success(
-                    "✅ Content idea saved."
-                )
-
-    st.divider()
-
-    # --------------------------------------------------------
-    # CURRENT CONTENT
-    # --------------------------------------------------------
-
-    content_df = read_sheet(
-        "Content",
-        content_columns
-    )
-
+    # ========================================================
+    # 2. APPROVAL QUEUE (Visible to Everyone)
+    # ========================================================
+    st.subheader("✅ Needs Client Approval")
+    
     if not content_df.empty:
-
-        st.subheader("Current Content Pipeline")
-
-        st.dataframe(
-            content_df,
-            use_container_width=True,
-            hide_index=True
-        )
-
+        # Filter for content tagged as "In Review" by the Marketing Manager
+        pending_df = content_df[content_df["Status"].isin(["In Review"])]
+        
+        if pending_df.empty:
+            st.success("🎉 All caught up! No content is currently waiting for approval.")
+        else:
+            for idx, row in pending_df.iterrows():
+                with st.expander(f"📝 {row['Title']} (Scheduled: {row['Publish Date']})", expanded=True):
+                    st.markdown(f"**Brand:** {row['Brand']} | **Platform:** {row['Platform']}")
+                    st.markdown(f"**Concept/Hook:** {row['Hook']}")
+                    
+                    client_feedback = st.text_input(
+                        "Add feedback or requested changes:", 
+                        value=row['Client Notes'], 
+                        key=f"notes_{idx}"
+                    )
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("✅ Approve Content", key=f"approve_{idx}", type="primary"):
+                            content_df.at[idx, "Status"] = "Approved"
+                            content_df.at[idx, "Client Notes"] = client_feedback
+                            if update_sheet("Content", content_df):
+                                st.rerun()
+                    
+                    with col2:
+                        if st.button("🔄 Request Changes", key=f"reject_{idx}"):
+                            content_df.at[idx, "Status"] = "Changes Requested"
+                            content_df.at[idx, "Client Notes"] = client_feedback
+                            if update_sheet("Content", content_df):
+                                st.rerun()
     else:
+        st.info("No content pipeline has been established yet.")
 
-        st.info(
-            "No content has been added yet."
-        )
-# --------------------------------------------------------
-    # CURRENT CONTENT (CLIENT TRANSPARENCY)
-    # --------------------------------------------------------
+    # ========================================================
+    # 3. HISTORY TABLE (Visible to Everyone)
+    # ========================================================
     st.divider()
     st.subheader("🗄️ Content Pipeline History")
     
-    content_df = read_sheet("Content", content_columns)
-    
     if not content_df.empty:
-        # Reverse the dataframe to show newest first
         st.dataframe(
             content_df.iloc[::-1],
             use_container_width=True,

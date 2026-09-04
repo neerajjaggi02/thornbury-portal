@@ -191,110 +191,83 @@ tabs = st.tabs([
 
 with tabs[0]:
 
-    st.header("Business Performance")
+    st.header("🏠 Executive Dashboard")
+
+    # --------------------------------------------------------
+    # WEEKLY WINS & ACTION BOARD
+    # --------------------------------------------------------
+    update_cols = ["Timestamp", "Weekly Wins", "Needs from Client"]
+    update_df = read_sheet("Weekly_Update_Data", update_cols)
+
+    # Set default text if sheet is empty
+    latest_wins = "No updates recorded yet."
+    latest_needs = "No pending actions required."
+    
+    # Grab the most recent entry if data exists
+    if not update_df.empty:
+        latest_row = update_df.iloc[-1]
+        latest_wins = latest_row["Weekly Wins"]
+        latest_needs = latest_row["Needs from Client"]
+
+    st.subheader("📣 Weekly Status")
+    
+    col_wins, col_needs = st.columns(2)
+    with col_wins:
+        st.success(f"**🏆 Wins This Week:**\n\n{latest_wins}")
+    with col_needs:
+        st.warning(f"**⏳ Needs From You:**\n\n{latest_needs}")
+
+    # Manager-only edit form
+    if view_mode == "Marketing Manager":
+        with st.expander("✏️ Update Weekly Status", expanded=False):
+            with st.form("weekly_update_form"):
+                new_wins = st.text_area("Weekly Wins (Use bullets or short sentences)", value=latest_wins, height=150)
+                new_needs = st.text_area("Needs from Client (Approvals, assets, etc.)", value=latest_needs, height=150)
+                
+                update_submit = st.form_submit_button("💾 Post Update to Client Dashboard")
+                
+                if update_submit:
+                    row = {
+                        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "Weekly Wins": new_wins,
+                        "Needs from Client": new_needs
+                    }
+                    if append_to_sheet("Weekly_Update_Data", row, update_cols):
+                        st.success("✅ Dashboard updated!")
+                        st.rerun()
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # BUSINESS PERFORMANCE METRICS
+    # --------------------------------------------------------
+    st.subheader("📈 Key Performance Indicators")
 
     # Demo / baseline values
     # Replace with Google Sheets data when historical data is available.
-
     c1, c2, c3, c4 = st.columns(4)
 
     with c1:
-        metric_card(
-            "Monday–Thursday Revenue",
-            "$8,420",
-            "+12%"
-        )
-
+        metric_card("Monday–Thursday Revenue", "$8,420", "+12%")
     with c2:
-        metric_card(
-            "Weekday Covers",
-            "126",
-            "+18%"
-        )
-
+        metric_card("Weekday Covers", "126", "+18%")
     with c3:
-        metric_card(
-            "Corporate Leads",
-            "18",
-            "+6"
-        )
-
+        metric_card("Corporate Leads", "18", "+6")
     with c4:
-        metric_card(
-            "Corporate Bookings",
-            "3",
-            "+1"
-        )
+        metric_card("Corporate Bookings", "3", "+1")
 
     st.divider()
 
     # --------------------------------------------------------
-    # RESTAURANT
+    # CURRENT PROJECT STATUS (Visible to both)
     # --------------------------------------------------------
-
-    st.subheader("🍽️ Restaurant — Monday to Thursday")
-
-    r1, r2, r3, r4 = st.columns(4)
-
-    with r1:
-        metric_card("Monday Covers", "34")
-
-    with r2:
-        metric_card("Tuesday Covers", "22")
-
-    with r3:
-        metric_card("Wednesday Covers", "31")
-
-    with r4:
-        metric_card("Thursday Covers", "55")
-
-    st.info(
-        "🎯 Primary restaurant objective: increase Monday–Thursday "
-        "covers without relying on heavy discounting."
-    )
-
-    # --------------------------------------------------------
-    # THEATRE
-    # --------------------------------------------------------
-
-    st.subheader("💼 Theatre — Corporate Pipeline")
-
-    t1, t2, t3, t4, t5 = st.columns(5)
-
-    with t1:
-        metric_card("Prospects", "47")
-
-    with t2:
-        metric_card("Contacted", "31")
-
-    with t3:
-        metric_card("Replies", "9")
-
-    with t4:
-        metric_card("Qualified", "6")
-
-    with t5:
-        metric_card("Booked", "2")
-
-    st.divider()
-
-    # --------------------------------------------------------
-    # CURRENT PROJECT STATUS
-    # --------------------------------------------------------
-
     st.subheader("🚀 Current Project Status")
 
     p1, p2 = st.columns(2)
 
     with p1:
-
         st.markdown("### Website")
-
-        st.progress(
-            0.78,
-            text="78% — Conversion architecture"
-        )
-
+        st.progress(0.78, text="78% — Conversion architecture")
         st.markdown("""
         - ✅ Discovery
         - ✅ Website audit
@@ -305,14 +278,8 @@ with tabs[0]:
         """)
 
     with p2:
-
         st.markdown("### Marketing")
-
-        st.progress(
-            0.55,
-            text="55% — Acquisition setup"
-        )
-
+        st.progress(0.55, text="55% — Acquisition setup")
         st.markdown("""
         - ✅ Content strategy
         - ✅ Weekday campaign concept
@@ -320,7 +287,6 @@ with tabs[0]:
         - 🔄 Google/Meta setup
         - ⬜ CRM automation
         """)
-
 # ============================================================
 # 2. DISCOVERY
 # ============================================================

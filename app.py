@@ -1250,13 +1250,15 @@ with tabs[7]:
     with m4:
         metric_card("ROAS", "—")
 # ========================================================
-    # UTM LINK GENERATOR (Marketing Manager Only)
+    # UTM LINK GENERATOR & REPOSITORY (Marketing Manager Only)
     # ========================================================
     if view_mode == "Marketing Manager":
         
         st.divider()
-        st.subheader("🔗 UTM Tracking Link Generator")
-        st.markdown("Create clean, trackable URLs for your Meta, Google, and Email campaigns.")
+        st.subheader("🔗 UTM Tracking Link Generator & History")
+        st.markdown("Create clean, trackable URLs and save them to prevent campaign duplication.")
+
+        utm_columns = ["Timestamp", "Campaign Name", "Destination URL", "Source", "Medium", "Final UTM URL"]
 
         with st.form("utm_builder_form"):
             base_url = st.text_input(
@@ -1278,43 +1280,61 @@ with tabs[7]:
             with c5:
                 utm_content = st.text_input("Content (Optional)", placeholder="e.g., video_v1, image_v2")
 
-            generate_utm = st.form_submit_button("🔨 Generate Tracking Link")
+            generate_utm = st.form_submit_button("🔨 Generate & Save Tracking Link")
 
             if generate_utm:
                 if base_url and utm_source and utm_medium and utm_campaign:
                     import urllib.parse
                     
-                    # Clean up spaces
                     base_url = base_url.strip()
-                    
-                    # Ensure base URL has https://
                     if not base_url.startswith('http'):
                         base_url = 'https://' + base_url
                         
-                    # Build the parameter dictionary
+                    clean_campaign = utm_campaign.strip().replace(" ", "_").lower()
+                    
                     params = {
                         'utm_source': utm_source.strip().lower(),
                         'utm_medium': utm_medium.strip().lower(),
-                        'utm_campaign': utm_campaign.strip().replace(" ", "_").lower()
+                        'utm_campaign': clean_campaign
                     }
                     if utm_term:
                         params['utm_term'] = utm_term.strip().replace(" ", "_").lower()
                     if utm_content:
                         params['utm_content'] = utm_content.strip().replace(" ", "_").lower()
                         
-                    # Encode into a URL string
                     query_string = urllib.parse.urlencode(params)
-                    
-                    # Handle URLs that might already have a ? in them
                     separator = '&' if '?' in base_url else '?'
                     final_url = f"{base_url}{separator}{query_string}"
                     
-                    st.success("✅ Tracking link generated successfully!")
+                    # Package data to save to Google Sheets
+                    row = {
+                        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "Campaign Name": clean_campaign,
+                        "Destination URL": base_url,
+                        "Source": utm_source.strip().lower(),
+                        "Medium": utm_medium.strip().lower(),
+                        "Final UTM URL": final_url
+                    }
                     
-                    # The st.code block creates a natural "Copy to Clipboard" button in the UI
-                    st.code(final_url, language="")
+                    if append_to_sheet("UTM_Links", row, utm_columns):
+                        st.success("✅ Tracking link generated and saved to history!")
+                        time.sleep(1)
+                        st.rerun()
                 else:
                     st.error("⚠️ Please fill in all required fields: Destination URL, Source, Medium, and Campaign.")
+
+        # Display history so you can check existing links before creating new ones
+        st.markdown("### 🗄️ Previously Generated Links")
+        utm_df = read_sheet("UTM_Links", utm_columns)
+        
+        if not utm_df.empty:
+            st.dataframe(
+                utm_df.iloc[::-1],
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.info("No tracking links have been generated yet.")
 # ============================================================
 # 9. 90-DAY ROADMAP
 # ============================================================

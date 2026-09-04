@@ -125,33 +125,34 @@ def metric_card(label, value, delta=None):
 with st.sidebar:
 
     st.title("🏢 Thornbury")
-
     st.caption("Growth Command Centre")
-
-    st.divider()
-
-    st.markdown("### Navigation")
-
-    view_mode = st.radio(
-        "View",
-        ["Client View", "Marketing Manager"],
-        index=0
-    )
-
     st.divider()
 
     st.markdown("### Project Focus")
-
     st.success("🍽️ Weekday Restaurant Growth")
     st.info("💼 Corporate Theatre Sales")
     st.warning("🌐 Website Conversion")
     st.success("📧 CRM & Repeat Business")
 
     st.divider()
+    st.caption("Thornbury Taphouse + Thornbury Theatre")
+    
+    st.divider()
 
-    st.caption(
-        "Thornbury Taphouse + Thornbury Theatre"
-    )
+    # --------------------------------------------------------
+    # HIDDEN ADMIN ACCESS
+    # --------------------------------------------------------
+    # We hide the password field inside an expander so it doesn't distract the client
+    with st.expander("⚙️ Settings"):
+        admin_password = st.text_input("Agency Access", type="password")
+
+    # If the password matches, unlock the manager view. 
+    # Otherwise, force it into Client View.
+    if admin_password == "growth2026":  # Change "growth2026" to your preferred password
+        view_mode = "Marketing Manager"
+        st.success("🔓 Marketing Manager View Unlocked")
+    else:
+        view_mode = "Client View"
 
 # ============================================================
 # HEADER

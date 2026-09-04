@@ -536,116 +536,91 @@ HOME
 with tabs[3]:
 
     st.header("🍽️ Restaurant Weekday Growth")
+    st.markdown("Build repeatable reasons for customers to visit Monday–Thursday.")
 
-    st.markdown(
-        "Build repeatable reasons for customers to visit Monday–Thursday."
-    )
+    # Wrap all inputs in a form so they save together
+    with st.form("restaurant_growth_form"):
+        
+        days = ["Monday", "Tuesday", "Wednesday", "Thursday"]
+        day_inputs = {}
 
-    # --------------------------------------------------------
-    # DAY CARDS
-    # --------------------------------------------------------
+        # Generate the daily input cards
+        for day in days:
+            with st.expander(f"{day} Metrics", expanded=(day == "Tuesday")):
+                col1, col2, col3 = st.columns(3)
 
-    days = [
-        ("Monday", "Smokehouse Monday"),
-        ("Tuesday", "Tap Tuesday / Super Tuesday"),
-        ("Wednesday", "Taphouse Social"),
-        ("Thursday", "Dinner + Show")
-    ]
+                with col1:
+                    c = st.number_input(f"{day} covers", min_value=0, step=1, key=f"{day}_covers")
+                with col2:
+                    r = st.number_input(f"{day} revenue ($)", min_value=0, step=100, key=f"{day}_revenue")
+                with col3:
+                    t = st.number_input(f"{day} target covers", min_value=0, step=5, key=f"{day}_target")
+                
+                # Store inputs in a dictionary to process upon save
+                day_inputs[day] = {"Covers": c, "Revenue": r, "Target": t}
+                
+                if t > 0:
+                    achievement = min(c / t, 1)
+                    st.progress(achievement, text=f"{c}/{t} covers")
 
-    for day, campaign in days:
+        st.divider()
 
-        with st.expander(
-            f"{day} — {campaign}",
-            expanded=(day == "Tuesday")
-        ):
+        st.subheader("🔥 Super Tuesday Activation")
 
-            col1, col2, col3 = st.columns(3)
-
-            with col1:
-
-                covers = st.number_input(
-                    f"{day} covers",
-                    min_value=0,
-                    step=1,
-                    key=f"{day}_covers"
-                )
-
-            with col2:
-
-                revenue = st.number_input(
-                    f"{day} revenue ($)",
-                    min_value=0,
-                    step=100,
-                    key=f"{day}_revenue"
-                )
-
-            with col3:
-
-                target = st.number_input(
-                    f"{day} target covers",
-                    min_value=0,
-                    step=5,
-                    key=f"{day}_target"
-                )
-
-            if target > 0:
-
-                achievement = min(
-                    covers / target,
-                    1
-                )
-
-                st.progress(
-                    achievement,
-                    text=f"{covers}/{target} covers"
-                )
-
-    st.divider()
-
-    # --------------------------------------------------------
-    # SUPER TUESDAY
-    # --------------------------------------------------------
-
-    ("🔥 Super Tuesday Activation")
-
-    activation = st.selectbox(
-        "Current Tuesday activation",
-        [
-            "Tap Tuesday",
-            "Local Hospo Night",
-            "Secret Menu",
-            "Trivia Night",
-            "Live Music",
-            "Other"
-        ]
-    )
-
-    st.text_area(
-        "Tuesday offer / campaign description",
-        placeholder=(
-            "Example: rotating taps + Tuesday-only "
-            "food special."
+        activation = st.selectbox(
+            "Current Tuesday activation",
+            ["Tap Tuesday", "Local Hospo Night", "Secret Menu", "Trivia Night", "Live Music", "Other"]
         )
-    )
 
-    c1, c2, c3, c4 = st.columns(4)
+        description = st.text_area(
+            "Tuesday offer / campaign description",
+            placeholder="Example: rotating taps + Tuesday-only food special."
+        )
 
-    with c1:
-        metric_card("Tuesday Covers", "22")
+        # The Save Button
+        restaurant_submit = st.form_submit_button("💾 Save Restaurant Data")
 
-    with c2:
-        metric_card("Target", "50")
+        if restaurant_submit:
+            # 1. Update the Monday-Thursday metrics in Restaurant_Data tab
+            rest_data = []
+            for day in days:
+                rest_data.append({
+                    "Day": day,
+                    "Covers": day_inputs[day]["Covers"],
+                    "Target": day_inputs[day]["Target"],
+                    "Revenue": day_inputs[day]["Revenue"]
+                })
+            
+            df_rest = pd.DataFrame(rest_data)
+            
+            # Note: This uses update_sheet to OVERWRITE the current week's data 
+            # so your Analytics charts stay clean.
+            update_success = update_sheet("Restaurant_Data", df_rest)
 
-    with c3:
-        metric_card("Average Spend", "$54")
+            # 2. Append the Tuesday Activation record
+            activation_row = {
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Activation": activation,
+                "Description": description
+            }
+            
+            activation_success = append_to_sheet(
+                "Tuesday_Activation", 
+                activation_row, 
+                ["Timestamp", "Activation", "Description"]
+            )
 
-    with c4:
-        metric_card("Repeat Tuesday Customers", "—")
+            if update_success and activation_success:
+                st.success("✅ Restaurant metrics and Super Tuesday data saved successfully.")
 
+    # --------------------------------------------------------
+    # DISPLAY CURRENT METRICS OUTSIDE THE FORM
+    # --------------------------------------------------------
+    st.divider()
+    
     st.info(
-        "Recommendation: test one strong Tuesday proposition "
-        "for 4–6 weeks and compare incremental covers, revenue, "
-        "average spend and repeat visits."
+        "Recommendation: test one strong Tuesday proposition for 4–6 weeks and compare "
+        "incremental covers, revenue, average spend and repeat visits."
     )
 
 # ============================================================

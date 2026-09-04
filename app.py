@@ -32,12 +32,12 @@ SHEET_URL = "https://docs.google.com/spreadsheets/d/1-2HTr0mOkl_Tis-ehO4apu8kqw4
 
 def read_sheet(worksheet, columns=None):
     """Read a worksheet safely."""
-
     try:
+        # Changed ttl=0 to ttl=600 (caches data for 10 minutes to prevent API limits)
         df = conn.read(
             spreadsheet=SHEET_URL,
             worksheet=worksheet,
-            ttl=0
+            ttl=600
         )
 
         if df is None:
@@ -60,7 +60,6 @@ def read_sheet(worksheet, columns=None):
             f"Please make sure the tab exists in Google Sheets. "
             f"Error: {e}"
         )
-
         return pd.DataFrame(columns=columns or [])
 
 
@@ -81,6 +80,9 @@ def append_to_sheet(worksheet, new_row, columns):
             worksheet=worksheet,
             data=updated
         )
+        
+        # Clear the cache so the app immediately shows the new data
+        st.cache_data.clear()
 
         return True
 
@@ -97,6 +99,10 @@ def update_sheet(worksheet, df):
             worksheet=worksheet,
             data=df
         )
+        
+        # Clear the cache so the app immediately shows the new data
+        st.cache_data.clear()
+        
         return True
 
     except Exception as e:

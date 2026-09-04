@@ -1151,27 +1151,31 @@ with tabs[7]:
 with tabs[8]:
 
     st.header("🗓️ 90-Day Growth Sprint")
+    st.markdown("Track the project week by week.")
 
-    st.markdown(
-        "Track the project week by week."
-    )
+    # 1. Fetch existing saved progress from Google Sheets
+    roadmap_columns = ["Task", "Completed"]
+    roadmap_df = read_sheet("Roadmap_Data", roadmap_columns)
+    
+    # Convert the saved data into a dictionary for easy lookup
+    # 'Completed' comes back as a string ('True' or 'False') from Google Sheets
+    saved_status = {}
+    if not roadmap_df.empty:
+        saved_status = dict(zip(roadmap_df['Task'], roadmap_df['Completed'].astype(str) == 'True'))
 
     phases = {
-
         "Phase 1 — Foundation | Weeks 1–4": [
             "Week 1 — Client discovery + collect brand assets",
             "Week 2 — Website, Google, booking and competitor audit",
             "Week 3 — Website wireframes + corporate landing page",
             "Week 4 — Analytics + conversion tracking + content strategy"
         ],
-
         "Phase 2 — Launch | Weeks 5–8": [
             "Week 5 — Website launch + Monday–Wednesday campaign",
             "Week 6 — Corporate B2B launch + LinkedIn outreach",
             "Week 7 — Dinner + Show cross-selling",
             "Week 8 — Short-form content + Google/Meta campaigns"
         ],
-
         "Phase 3 — Optimise | Weeks 9–12": [
             "Week 9 — Review CPL + booking conversion",
             "Week 10 — Evaluate cloud kitchen readiness",
@@ -1180,43 +1184,64 @@ with tabs[8]:
         ]
     }
 
-    total_tasks = sum(
-        len(tasks)
-        for tasks in phases.values()
-    )
+    total_tasks = sum(len(tasks) for tasks in phases.values())
 
-    completed_tasks = 0
+    # 2. Build the Form
+    with st.form("roadmap_form"):
+        
+        completed_tasks = 0
+        current_states = {}
 
-    for phase, tasks in phases.items():
+        for phase, tasks in phases.items():
+            st.subheader(phase)
 
-        st.subheader(phase)
+            for task in tasks:
+                # Look up if this task was previously saved as True
+                default_val = saved_status.get(task, False)
+                
+                done = st.checkbox(task, value=default_val, key=f"roadmap_{task}")
+                current_states[task] = done
+                
+                if done:
+                    completed_tasks += 1
 
-        for task in tasks:
+        st.divider()
 
-            done = st.checkbox(
-                task,
-                key=f"roadmap_{task}"
-            )
+        progress = (completed_tasks / total_tasks) if total_tasks > 0 else 0
 
-            if done:
-                completed_tasks += 1
-
-    progress = (
-        completed_tasks / total_tasks
-        if total_tasks > 0
-        else 0
-    )
-
-    st.divider()
-
-    st.progress(
-        progress,
-        text=(
-            f"{completed_tasks}/{total_tasks} milestones "
-            f"completed — {progress:.0%}"
+        st.progress(
+            progress,
+            text=f"{completed_tasks}/{total_tasks} milestones completed — {progress:.0%}"
         )
-    )
 
+        roadmap_submit = st.form_submit_button("💾 Save Roadmap Progress")
+
+        # 3. Save logic
+        if roadmap_submit:
+            # Convert the current checkbox states into a DataFrame
+            new_roadmap_data = []
+            for task_name, is_done in current_states.items():
+                new_roadmap_data.append({
+                    "Task": task_name,
+                    "Completed": is_done
+                })
+            
+            df_roadmap = pd.DataFrame(new_roadmap_data)
+            
+            # Overwrite the sheet so it acts as a permanent state tracker
+            if update_sheet("Roadmap_Data", df_roadmap):
+                st.success("✅ Roadmap progress saved successfully!")
+
+# ============================================================
+# FOOTER
+# ============================================================
+
+st.divider()
+
+st.caption(
+    "Thornbury Growth Command Centre • "
+    "Restaurant + Theatre + Corporate Growth"
+)
 # ============================================================
 # FOOTER
 # ============================================================

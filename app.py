@@ -1249,7 +1249,72 @@ with tabs[7]:
 
     with m4:
         metric_card("ROAS", "—")
+# ========================================================
+    # UTM LINK GENERATOR (Marketing Manager Only)
+    # ========================================================
+    if view_mode == "Marketing Manager":
+        
+        st.divider()
+        st.subheader("🔗 UTM Tracking Link Generator")
+        st.markdown("Create clean, trackable URLs for your Meta, Google, and Email campaigns.")
 
+        with st.form("utm_builder_form"):
+            base_url = st.text_input(
+                "Destination URL (Required)", 
+                placeholder="https://www.thornbury.com/corporate-events"
+            )
+            
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                utm_source = st.text_input("Source (Required)", placeholder="e.g., meta, google, newsletter")
+            with c2:
+                utm_medium = st.text_input("Medium (Required)", placeholder="e.g., cpc, social, email")
+            with c3:
+                utm_campaign = st.text_input("Campaign Name (Required)", placeholder="e.g., xmas_party_2026")
+                
+            c4, c5 = st.columns(2)
+            with c4:
+                utm_term = st.text_input("Term (Optional)", placeholder="e.g., corporate+venues")
+            with c5:
+                utm_content = st.text_input("Content (Optional)", placeholder="e.g., video_v1, image_v2")
+
+            generate_utm = st.form_submit_button("🔨 Generate Tracking Link")
+
+            if generate_utm:
+                if base_url and utm_source and utm_medium and utm_campaign:
+                    import urllib.parse
+                    
+                    # Clean up spaces
+                    base_url = base_url.strip()
+                    
+                    # Ensure base URL has https://
+                    if not base_url.startswith('http'):
+                        base_url = 'https://' + base_url
+                        
+                    # Build the parameter dictionary
+                    params = {
+                        'utm_source': utm_source.strip().lower(),
+                        'utm_medium': utm_medium.strip().lower(),
+                        'utm_campaign': utm_campaign.strip().replace(" ", "_").lower()
+                    }
+                    if utm_term:
+                        params['utm_term'] = utm_term.strip().replace(" ", "_").lower()
+                    if utm_content:
+                        params['utm_content'] = utm_content.strip().replace(" ", "_").lower()
+                        
+                    # Encode into a URL string
+                    query_string = urllib.parse.urlencode(params)
+                    
+                    # Handle URLs that might already have a ? in them
+                    separator = '&' if '?' in base_url else '?'
+                    final_url = f"{base_url}{separator}{query_string}"
+                    
+                    st.success("✅ Tracking link generated successfully!")
+                    
+                    # The st.code block creates a natural "Copy to Clipboard" button in the UI
+                    st.code(final_url, language="")
+                else:
+                    st.error("⚠️ Please fill in all required fields: Destination URL, Source, Medium, and Campaign.")
 # ============================================================
 # 9. 90-DAY ROADMAP
 # ============================================================

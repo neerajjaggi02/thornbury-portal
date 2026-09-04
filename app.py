@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 from datetime import datetime, date
+import time
 
 # ============================================================
 # PAGE CONFIGURATION
@@ -234,7 +235,8 @@ with tabs[0]:
                     }
                     if append_to_sheet("Weekly_Update_Data", row, update_cols):
                         st.success("✅ Dashboard updated!")
-                        st.rerun()
+                        time.sleep(1.5)  # Pauses for 1.5 seconds
+                        st.rerun()       # Now refreshes the page
 
     st.divider()
 

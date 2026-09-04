@@ -316,31 +316,39 @@ with tabs[0]:
 
     st.divider()
 
-    # --------------------------------------------------------
-    # CURRENT PROJECT STATUS (Visible to both)
-    # --------------------------------------------------------
-    # --------------------------------------------------------
+  # --------------------------------------------------------
     # CURRENT PROJECT STATUS (Visible to both)
     # --------------------------------------------------------
     st.subheader("🚀 Current Project Status")
 
+    # Fetch live website progress for the dashboard card
+    web_df_dash = read_sheet("Website_Data", ["Task", "Completed"])
+    total_web_tasks = 12
+    completed_web_count = 0
+    
+    if not web_df_dash.empty:
+        completed_web_count = len(web_df_dash[web_df_dash['Completed'].astype(str) == 'True'])
+    
+    web_progress_val = (completed_web_count / total_web_tasks) if total_web_tasks > 0 else 0
+
     p1, p2 = st.columns(2)
 
     with p1:
-        st.markdown("### Website")
-        st.progress(0.78, text="78% — Conversion architecture")
-        st.markdown("""
-        - ✅ Discovery
-        - ✅ Website audit
-        - ✅ Wireframes
-        - 🔄 Corporate landing page
-        - ⬜ Final design
-        - ⬜ Launch
-        """)
+        st.markdown("### Website Revamp")
+        st.progress(
+            web_progress_val, 
+            text=f"{completed_web_count}/{total_web_tasks} completed — {web_progress_val:.0%}"
+        )
+        st.markdown(
+            "Track the live transformation from discovery and UX audits through to final QA and launch."
+        )
 
     with p2:
-        st.markdown("### Marketing")
-        st.progress(0.55, text="55% — Acquisition setup")
+        st.markdown("### Marketing Setup")
+        st.progress(
+            0.55,
+            text="55% — Acquisition setup"
+        )
         st.markdown("""
         - ✅ Content strategy
         - ✅ Weekday campaign concept
@@ -513,9 +521,8 @@ with tabs[1]:
 with tabs[2]:
 
     st.header("🌐 Website Revamp Tracker")
-    st.markdown("Track the website transformation from discovery to launch.")
+    st.markdown("Monitor and manage the website transformation stages from discovery to launch.")
 
-    # Fetch existing saved progress
     web_columns = ["Task", "Completed"]
     web_df = read_sheet("Website_Data", web_columns)
     
@@ -538,29 +545,51 @@ with tabs[2]:
         "Website Launch"
     ]
 
-    with st.form("website_form"):
-        completed = 0
-        current_web_states = {}
+    # ========================================================
+    # MARKETING MANAGER VIEW (Interactive Checklist Form)
+    # ========================================================
+    if view_mode == "Marketing Manager":
+        st.info("🔒 **Admin Mode:** Update checklist states below and click save.")
+        
+        with st.form("website_form"):
+            completed = 0
+            current_web_states = {}
 
-        for task in website_tasks:
-            default_val = saved_web_status.get(task, False)
-            value = st.checkbox(task, value=default_val, key=f"website_{task}")
-            current_web_states[task] = value
+            for task in website_tasks:
+                default_val = saved_web_status.get(task, False)
+                value = st.checkbox(task, value=default_val, key=f"website_{task}")
+                current_web_states[task] = value
+                
+                if value:
+                    completed += 1
+
+            progress = completed / len(website_tasks)
+            st.progress(progress, text=f"{completed}/{len(website_tasks)} completed")
             
-            if value:
-                completed += 1
+            web_submit = st.form_submit_button("💾 Save Website Progress")
+            
+            if web_submit:
+                new_web_data = [{"Task": k, "Completed": v} for k, v in current_web_states.items()]
+                if update_sheet("Website_Data", pd.DataFrame(new_web_data)):
+                    st.success("✅ Website progress saved.")
+                    time.sleep(1)
+                    st.rerun()
 
-        progress = completed / len(website_tasks)
-        st.progress(progress, text=f"{completed}/{len(website_tasks)} completed")
+    # ========================================================
+    # CLIENT VIEW (Read-Only Status Overview)
+    # ========================================================
+    elif view_mode == "Client View":
+        st.markdown("Here is the current completion status of your website overhaul:")
         
-        web_submit = st.form_submit_button("💾 Save Website Progress")
-        
-        if web_submit:
-            new_web_data = [{"Task": k, "Completed": v} for k, v in current_web_states.items()]
-            if update_sheet("Website_Data", pd.DataFrame(new_web_data)):
-                st.success("✅ Website progress saved.")
+        for task in website_tasks:
+            is_done = saved_web_status.get(task, False)
+            if is_done:
+                st.markdown(f"✅ **{task}** — Completed")
+            else:
+                st.markdown(f"⏳ **{task}** — In Progress / Pending")
 
     st.divider()
+
     st.subheader("Recommended Theatre Website Structure")
     st.code("""
 HOME

@@ -240,26 +240,85 @@ with tabs[0]:
 
     st.divider()
 
+   # --------------------------------------------------------
+    # CONSOLIDATED ROI SNAPSHOT
     # --------------------------------------------------------
-    # BUSINESS PERFORMANCE METRICS
-    # --------------------------------------------------------
-    st.subheader("📈 Key Performance Indicators")
+    st.divider()
+    
+    roi_cols = ["Timestamp", "Ad Spend", "Tracked Leads", "Estimated Revenue"]
+    roi_df = read_sheet("ROI_Data", roi_cols)
 
-    # Demo / baseline values
-    # Replace with Google Sheets data when historical data is available.
-    c1, c2, c3, c4 = st.columns(4)
+    # Default values if the sheet is empty
+    current_spend = 0
+    current_leads = 0
+    current_revenue = 0
 
-    with c1:
-        metric_card("Monday–Thursday Revenue", "$8,420", "+12%")
-    with c2:
-        metric_card("Weekday Covers", "126", "+18%")
-    with c3:
-        metric_card("Corporate Leads", "18", "+6")
-    with c4:
-        metric_card("Corporate Bookings", "3", "+1")
+    if not roi_df.empty:
+        latest_roi = roi_df.iloc[-1]
+        current_spend = latest_roi["Ad Spend"]
+        current_leads = latest_roi["Tracked Leads"]
+        current_revenue = latest_roi["Estimated Revenue"]
+
+    st.subheader("💰 Campaign ROI Snapshot")
+    
+    rc1, rc2, rc3 = st.columns(3)
+    with rc1:
+        metric_card("Total Ad Spend", f"${current_spend:,}")
+    with rc2:
+        metric_card("Total Tracked Leads", str(current_leads))
+    with rc3:
+        metric_card("Estimated Revenue Generated", f"${current_revenue:,}")
+
+    # ========================================================
+    # MARKETING MANAGER SPECIFIC VIEW
+    # ========================================================
+    if view_mode == "Marketing Manager":
+        
+        # Hidden form to update the big ROI numbers
+        with st.expander("⚙️ Update ROI Numbers", expanded=False):
+            with st.form("roi_update_form"):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    new_spend = st.number_input("Total Ad Spend ($)", min_value=0, value=int(current_spend), step=50)
+                with col2:
+                    new_leads = st.number_input("Total Tracked Leads", min_value=0, value=int(current_leads), step=1)
+                with col3:
+                    new_revenue = st.number_input("Estimated Revenue ($)", min_value=0, value=int(current_revenue), step=100)
+                
+                roi_submit = st.form_submit_button("💾 Save ROI Data")
+                
+                if roi_submit:
+                    row = {
+                        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "Ad Spend": new_spend,
+                        "Tracked Leads": new_leads,
+                        "Estimated Revenue": new_revenue
+                    }
+                    if append_to_sheet("ROI_Data", row, roi_cols):
+                        st.success("✅ ROI Snapshot updated!")
+                        time.sleep(1.5)
+                        st.rerun()
+
+        st.divider()
+        
+        # Granular metrics are now hidden from the client, visible only to the manager
+        st.subheader("📈 Granular Performance Indicators")
+
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            metric_card("Monday–Thursday Revenue", "$8,420", "+12%")
+        with c2:
+            metric_card("Weekday Covers", "126", "+18%")
+        with c3:
+            metric_card("Corporate Leads", "18", "+6")
+        with c4:
+            metric_card("Corporate Bookings", "3", "+1")
 
     st.divider()
 
+    # --------------------------------------------------------
+    # CURRENT PROJECT STATUS (Visible to both)
+    # --------------------------------------------------------
     # --------------------------------------------------------
     # CURRENT PROJECT STATUS (Visible to both)
     # --------------------------------------------------------

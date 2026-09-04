@@ -1111,7 +1111,21 @@ with tabs[6]:
         "Use the existing customer database where legally permitted "
         "and ensure marketing communications have appropriate consent."
     )
-
+# --------------------------------------------------------
+    # CRM HISTORY (CLIENT TRANSPARENCY)
+    # --------------------------------------------------------
+    st.divider()
+    st.subheader("🗄️ CRM Growth History")
+    
+    # We fetch it again here or use the crm_df already loaded at the top
+    if not crm_df.empty:
+        st.dataframe(
+            crm_df.iloc[::-1],
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("No CRM data has been recorded yet.")
 # ============================================================
 # 8. ANALYTICS
 # ============================================================

@@ -974,64 +974,90 @@ with tabs[5]:
 with tabs[6]:
 
     st.header("📧 CRM & Loyalty")
+    st.markdown("Build a first-party customer database and increase repeat visits.")
 
-    st.markdown(
-        "Build a first-party customer database and increase repeat visits."
-    )
+    # Fetch existing data to show the latest metrics
+    crm_columns = [
+        "Timestamp", "Database Size", "New Subscribers", 
+        "Open Rate", "Email Bookings", "Active Segments"
+    ]
+    crm_df = read_sheet("CRM_Data", crm_columns)
 
-    c1, c2, c3, c4 = st.columns(4)
-
-    with c1:
-        metric_card("Customer Database", "—")
-
-    with c2:
-        metric_card("New Subscribers", "—")
-
-    with c3:
-        metric_card("Email Open Rate", "—")
-
-    with c4:
-        metric_card("Bookings from Email", "—")
-
+    if not crm_df.empty:
+        latest_crm = crm_df.iloc[-1]
+        
+        st.subheader("Current Performance")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            metric_card("Customer Database", str(latest_crm["Database Size"]))
+        with c2:
+            metric_card("New Subscribers", str(latest_crm["New Subscribers"]))
+        with c3:
+            metric_card("Email Open Rate", str(latest_crm["Open Rate"]))
+        with c4:
+            metric_card("Bookings from Email", str(latest_crm["Email Bookings"]))
+            
     st.divider()
 
-    st.subheader("Thornbury Insider")
+    # Form to input and save new data
+    with st.form("crm_form"):
+        st.subheader("Update CRM Metrics")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            db_size = st.number_input("Customer Database Size", min_value=0, step=10)
+        with col2:
+            new_subs = st.number_input("New Subscribers", min_value=0, step=1)
+        with col3:
+            open_rate = st.number_input("Email Open Rate (%)", min_value=0.0, max_value=100.0, step=0.1)
+        with col4:
+            email_bookings = st.number_input("Bookings from Email", min_value=0, step=1)
 
-    st.markdown("""
-    **Potential member benefits**
+        st.divider()
 
-    - Early access to shows
-    - Special weekday offers
-    - Birthday reward
-    - Exclusive events
-    - Member-only experiences
-    - Ticket presales
-    """)
+        st.subheader("Thornbury Insider & Segments")
+
+        st.markdown("""
+        **Potential member benefits**
+        - Early access to shows
+        - Special weekday offers
+        - Birthday reward
+        - Exclusive events
+        - Member-only experiences
+        - Ticket presales
+        """)
+
+        segments = st.multiselect(
+            "Active CRM segments",
+            [
+                "Restaurant Customers",
+                "Theatre Customers",
+                "Restaurant + Theatre Customers",
+                "Corporate Leads",
+                "VIP / Repeat Customers"
+            ],
+            default=["Restaurant Customers", "Theatre Customers"]
+        )
+
+        crm_submit = st.form_submit_button("💾 Save CRM Data")
+
+        if crm_submit:
+            row = {
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Database Size": db_size,
+                "New Subscribers": new_subs,
+                "Open Rate": f"{open_rate}%",
+                "Email Bookings": email_bookings,
+                "Active Segments": ", ".join(segments)
+            }
+
+            if append_to_sheet("CRM_Data", row, crm_columns):
+                st.success("✅ CRM & Loyalty data saved successfully. Refresh to see updated metrics.")
 
     st.info(
         "Use the existing customer database where legally permitted "
         "and ensure marketing communications have appropriate consent."
-    )
-
-    st.subheader("Suggested CRM Segments")
-
-    segments = st.multiselect(
-        "Active CRM segments",
-        [
-            "Restaurant Customers",
-            "Theatre Customers",
-            "Restaurant + Theatre Customers",
-            "Corporate Leads",
-            "VIP / Repeat Customers"
-        ],
-        default=[
-            "Restaurant Customers",
-            "Theatre Customers"
-        ]
-    )
-
-    st.write(
-        f"Selected segments: {', '.join(segments)}"
     )
 
 # ============================================================

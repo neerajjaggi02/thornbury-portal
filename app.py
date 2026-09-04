@@ -479,50 +479,55 @@ with tabs[1]:
 with tabs[2]:
 
     st.header("🌐 Website Revamp Tracker")
+    st.markdown("Track the website transformation from discovery to launch.")
 
-    st.markdown(
-        "Track the website transformation from discovery to launch."
-    )
+    # Fetch existing saved progress
+    web_columns = ["Task", "Completed"]
+    web_df = read_sheet("Website_Data", web_columns)
+    
+    saved_web_status = {}
+    if not web_df.empty:
+        saved_web_status = dict(zip(web_df['Task'], web_df['Completed'].astype(str) == 'True'))
 
     website_tasks = [
-        ("Discovery & Requirements", True),
-        ("Website UX Audit", True),
-        ("Competitor Research", False),
-        ("Information Architecture", True),
-        ("Restaurant Wireframes", False),
-        ("Corporate Events Landing Page", False),
-        ("Mobile-First Design", False),
-        ("SEO Structure", False),
-        ("OpenTable Integration", False),
-        ("Analytics & Conversion Tracking", False),
-        ("Final QA", False),
-        ("Website Launch", False),
+        "Discovery & Requirements",
+        "Website UX Audit",
+        "Competitor Research",
+        "Information Architecture",
+        "Restaurant Wireframes",
+        "Corporate Events Landing Page",
+        "Mobile-First Design",
+        "SEO Structure",
+        "OpenTable Integration",
+        "Analytics & Conversion Tracking",
+        "Final QA",
+        "Website Launch"
     ]
 
-    completed = 0
+    with st.form("website_form"):
+        completed = 0
+        current_web_states = {}
 
-    for task, default in website_tasks:
+        for task in website_tasks:
+            default_val = saved_web_status.get(task, False)
+            value = st.checkbox(task, value=default_val, key=f"website_{task}")
+            current_web_states[task] = value
+            
+            if value:
+                completed += 1
 
-        value = st.checkbox(
-            task,
-            value=default,
-            key=f"website_{task}"
-        )
-
-        if value:
-            completed += 1
-
-    progress = completed / len(website_tasks)
-
-    st.progress(
-        progress,
-        text=f"{completed}/{len(website_tasks)} completed"
-    )
+        progress = completed / len(website_tasks)
+        st.progress(progress, text=f"{completed}/{len(website_tasks)} completed")
+        
+        web_submit = st.form_submit_button("💾 Save Website Progress")
+        
+        if web_submit:
+            new_web_data = [{"Task": k, "Completed": v} for k, v in current_web_states.items()]
+            if update_sheet("Website_Data", pd.DataFrame(new_web_data)):
+                st.success("✅ Website progress saved.")
 
     st.divider()
-
-    ("Recommended Theatre Website Structure")
-
+    st.subheader("Recommended Theatre Website Structure")
     st.code("""
 HOME
 ├── What's On
@@ -535,8 +540,7 @@ HOME
 └── Contact
 """)
 
-    ("Recommended Taphouse Website Structure")
-
+    st.subheader("Recommended Taphouse Website Structure")
     st.code("""
 HOME
 ├── Menu
@@ -548,7 +552,6 @@ HOME
 ├── Gallery
 └── Contact
 """)
-
 # ============================================================
 # 4. RESTAURANT GROWTH
 # ============================================================
@@ -642,7 +645,23 @@ with tabs[3]:
         "Recommendation: test one strong Tuesday proposition for 4–6 weeks and compare "
         "incremental covers, revenue, average spend and repeat visits."
     )
-
+# --------------------------------------------------------
+    # TUESDAY ACTIVATION HISTORY (CLIENT TRANSPARENCY)
+    # --------------------------------------------------------
+    st.divider()
+    st.subheader("🗄️ Super Tuesday Activation History")
+    
+    tuesday_cols = ["Timestamp", "Activation", "Description"]
+    tuesday_df = read_sheet("Tuesday_Activation", tuesday_cols)
+    
+    if not tuesday_df.empty:
+        st.dataframe(
+            tuesday_df.iloc[::-1],
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("No Tuesday campaigns have been recorded yet.")
 # ============================================================
 # 5. CORPORATE B2B
 # ============================================================

@@ -838,7 +838,23 @@ with tabs[4]:
     - Event Agencies
     - Conference Organisers
     """)
-
+# --------------------------------------------------------
+    # CORPORATE LEADS HISTORY (CLIENT TRANSPARENCY)
+    # --------------------------------------------------------
+    st.divider()
+    st.subheader("🗄️ Corporate Leads History")
+    
+    leads_df = read_sheet("Corporate_Leads", lead_columns)
+    
+    if not leads_df.empty:
+        # Reverse the dataframe to show newest first
+        st.dataframe(
+            leads_df.iloc[::-1],
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("No corporate leads have been recorded yet.")
 # ============================================================
 # 6. CONTENT STUDIO
 # ============================================================
@@ -862,23 +878,7 @@ with tabs[5]:
         "Publish Date",
         "Client Notes"
     ]
-# --------------------------------------------------------
-    # CORPORATE LEADS HISTORY (CLIENT TRANSPARENCY)
-    # --------------------------------------------------------
-    st.divider()
-    st.subheader("🗄️ Corporate Leads History")
-    
-    leads_df = read_sheet("Corporate_Leads", lead_columns)
-    
-    if not leads_df.empty:
-        # Reverse the dataframe to show newest first
-        st.dataframe(
-            leads_df.iloc[::-1],
-            use_container_width=True,
-            hide_index=True
-        )
-    else:
-        st.info("No corporate leads have been recorded yet.")
+
     # --------------------------------------------------------
     # ADD CONTENT IDEA
     # --------------------------------------------------------

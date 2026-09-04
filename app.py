@@ -1002,7 +1002,23 @@ with tabs[5]:
         st.info(
             "No content has been added yet."
         )
-
+# --------------------------------------------------------
+    # CURRENT CONTENT (CLIENT TRANSPARENCY)
+    # --------------------------------------------------------
+    st.divider()
+    st.subheader("🗄️ Content Pipeline History")
+    
+    content_df = read_sheet("Content", content_columns)
+    
+    if not content_df.empty:
+        # Reverse the dataframe to show newest first
+        st.dataframe(
+            content_df.iloc[::-1],
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("No content has been added yet.")
 # ============================================================
 # 7. CRM & LOYALTY
 # ============================================================

@@ -897,26 +897,29 @@ with tabs[5]:
     content_df = read_sheet("Content", content_columns)
 
     # ========================================================
-    # 1. ADMIN CREATION FORM (Hidden from Client)
+    # 1. MARKETING MANAGER VIEW (Creation & Revisions)
     # ========================================================
     if view_mode == "Marketing Manager":
         
+        # A. Draft New Content Form
         with st.form("content_form"):
             st.subheader("➕ Draft New Content")
             
-            brand = st.selectbox("Brand", ["Thornbury Taphouse", "Thornbury Theatre", "Both"])
-            content_type = st.selectbox("Content Type", ["Reel", "Carousel", "Photo", "Story", "Corporate", "UGC"])
-            title = st.text_input("Content Title")
-            hook = st.text_area("Hook / First 3 Seconds")
-            platform = st.multiselect("Platform", ["Instagram", "Facebook", "TikTok", "LinkedIn"])
-            
-            # Manager tags it as 'In Review' here to send it to the client's queue
-            status = st.selectbox("Status", ["Idea", "Draft", "In Review", "Changes Requested", "Approved", "Scheduled", "Published"])
-            
-            publish_date = st.date_input("Publish Date", value=date.today())
-            client_notes = st.text_area("Internal / Client Notes")
+            col1, col2 = st.columns(2)
+            with col1:
+                brand = st.selectbox("Brand", ["Thornbury Taphouse", "Thornbury Theatre", "Both"])
+                content_type = st.selectbox("Content Type", ["Reel", "Carousel", "Photo", "Story", "Corporate", "UGC"])
+                title = st.text_input("Content Title")
+            with col2:
+                platform = st.multiselect("Platform", ["Instagram", "Facebook", "TikTok", "LinkedIn"])
+                publish_date = st.date_input("Publish Date", value=date.today())
+                # Default new items to "In Review" so they go straight to the client
+                status = st.selectbox("Status", ["In Review", "Draft", "Scheduled", "Published"])
+                
+            hook = st.text_area("Post Copy / First 3 Seconds")
+            client_notes = st.text_area("Internal Notes (Optional)")
 
-            content_submit = st.form_submit_button("💾 Save Content")
+            content_submit = st.form_submit_button("💾 Save & Send to Client")
 
             if content_submit and title:
                 row = {
@@ -932,10 +935,40 @@ with tabs[5]:
                 }
 
                 if append_to_sheet("Content", row, content_columns):
-                    st.success("✅ Content idea saved.")
+                    st.success("✅ Content sent to client for approval.")
                     st.rerun()
 
         st.divider()
+
+        # B. Revisions Queue (Only visible to the Manager)
+        st.subheader("⚠️ Revisions Needed")
+        
+        if not content_df.empty:
+            revisions_df = content_df[content_df["Status"] == "Changes Requested"]
+            
+            if revisions_df.empty:
+                st.info("No content currently requires your revision.")
+            else:
+                for idx, row in revisions_df.iterrows():
+                    with st.expander(f"Fix: {row['Title']} (Feedback from Client)", expanded=True):
+                        st.error(f"**Client Feedback:** {row['Client Notes']}")
+                        
+                        # Let the manager edit the actual content
+                        new_hook = st.text_area("Update the copy/hook:", value=row['Hook'], key=f"edit_hook_{idx}")
+                        manager_reply = st.text_input("Reply to client (optional):", key=f"reply_{idx}")
+                        
+                        if st.button("📤 Send Back for Approval", key=f"resend_{idx}", type="primary"):
+                            content_df.at[idx, "Hook"] = new_hook
+                            content_df.at[idx, "Status"] = "In Review"
+                            
+                            # Combine the chat history in the notes column
+                            if manager_reply:
+                                content_df.at[idx, "Client Notes"] = f"Agency Reply: {manager_reply} | Prior Feedback: {row['Client Notes']}"
+                            
+                            if update_sheet("Content", content_df):
+                                st.rerun()
+        st.divider()
+
 
     # ========================================================
     # 2. APPROVAL QUEUE (Visible to Everyone)
@@ -943,8 +976,7 @@ with tabs[5]:
     st.subheader("✅ Needs Client Approval")
     
     if not content_df.empty:
-        # Filter for content tagged as "In Review" by the Marketing Manager
-        pending_df = content_df[content_df["Status"].isin(["In Review"])]
+        pending_df = content_df[content_df["Status"] == "In Review"]
         
         if pending_df.empty:
             st.success("🎉 All caught up! No content is currently waiting for approval.")
@@ -952,28 +984,36 @@ with tabs[5]:
             for idx, row in pending_df.iterrows():
                 with st.expander(f"📝 {row['Title']} (Scheduled: {row['Publish Date']})", expanded=True):
                     st.markdown(f"**Brand:** {row['Brand']} | **Platform:** {row['Platform']}")
-                    st.markdown(f"**Concept/Hook:** {row['Hook']}")
+                    st.markdown(f"**Copy/Concept:** {row['Hook']}")
                     
+                    if row['Client Notes']:
+                        st.info(f"**Notes:** {row['Client Notes']}")
+                    
+                    # Blank input for fresh client feedback
                     client_feedback = st.text_input(
-                        "Add feedback or requested changes:", 
-                        value=row['Client Notes'], 
-                        key=f"notes_{idx}"
+                        "Add feedback or request changes:", 
+                        key=f"client_fb_{idx}"
                     )
                     
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.button("✅ Approve Content", key=f"approve_{idx}", type="primary"):
                             content_df.at[idx, "Status"] = "Approved"
-                            content_df.at[idx, "Client Notes"] = client_feedback
+                            if client_feedback:
+                                content_df.at[idx, "Client Notes"] = client_feedback
                             if update_sheet("Content", content_df):
                                 st.rerun()
                     
                     with col2:
                         if st.button("🔄 Request Changes", key=f"reject_{idx}"):
-                            content_df.at[idx, "Status"] = "Changes Requested"
-                            content_df.at[idx, "Client Notes"] = client_feedback
-                            if update_sheet("Content", content_df):
-                                st.rerun()
+                            # Prevent sending back without actual feedback
+                            if not client_feedback:
+                                st.warning("Please type your feedback in the box before requesting changes.")
+                            else:
+                                content_df.at[idx, "Status"] = "Changes Requested"
+                                content_df.at[idx, "Client Notes"] = client_feedback
+                                if update_sheet("Content", content_df):
+                                    st.rerun()
     else:
         st.info("No content pipeline has been established yet.")
 

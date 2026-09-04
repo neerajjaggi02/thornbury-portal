@@ -501,7 +501,7 @@ with tabs[2]:
 
     st.divider()
 
-    st.subheader("Recommended Theatre Website Structure")
+    ("Recommended Theatre Website Structure")
 
     st.code("""
 HOME
@@ -515,7 +515,7 @@ HOME
 └── Contact
 """)
 
-    st.subheader("Recommended Taphouse Website Structure")
+    ("Recommended Taphouse Website Structure")
 
     st.code("""
 HOME
@@ -606,7 +606,7 @@ with tabs[3]:
     # SUPER TUESDAY
     # --------------------------------------------------------
 
-    st.subheader("🔥 Super Tuesday Activation")
+    ("🔥 Super Tuesday Activation")
 
     activation = st.selectbox(
         "Current Tuesday activation",
@@ -1077,33 +1077,8 @@ with tabs[7]:
     # --------------------------------------------------------
 
     st.subheader("🍽️ Restaurant KPIs")
-
-    restaurant_data = pd.DataFrame({
-        "Day": [
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday"
-        ],
-        "Covers": [
-            34,
-            22,
-            31,
-            55
-        ],
-        "Target": [
-            50,
-            50,
-            50,
-            70
-        ],
-        "Revenue": [
-            1800,
-            1400,
-            1700,
-            3520
-        ]
-    })
+    
+    restaurant_data = read_sheet("Restaurant_Data", ["Day", "Covers", "Target", "Revenue"])
 
     st.dataframe(
         restaurant_data,

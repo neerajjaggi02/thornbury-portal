@@ -605,7 +605,7 @@ with tabs[3]:
             }
             
             activation_success = append_to_sheet(
-                "Tuesday_Activation", 
+                "Restaurant_Data", 
                 activation_row, 
                 ["Timestamp", "Activation", "Description"]
             )

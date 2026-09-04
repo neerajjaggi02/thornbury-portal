@@ -24,7 +24,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 # CONFIGURATION
 # ============================================================
 
-SHEET_URL = "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1-2HTr0mOkl_Tis-ehO4apu8kqw4KSKPte_nq_ngTm5E/edit?gid=0#gid=0"
 
 # ============================================================
 # HELPER FUNCTIONS
@@ -32,6 +32,7 @@ SHEET_URL = "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
 
 def read_sheet(worksheet, columns=None):
     """Read a worksheet safely."""
+
     try:
         df = conn.read(
             spreadsheet=SHEET_URL,
@@ -54,7 +55,12 @@ def read_sheet(worksheet, columns=None):
         return df
 
     except Exception as e:
-        st.warning(f"Could not load '{worksheet}': {e}")
+        st.error(
+            f"Could not load worksheet '{worksheet}'. "
+            f"Please make sure the tab exists in Google Sheets. "
+            f"Error: {e}"
+        )
+
         return pd.DataFrame(columns=columns or [])
 
 

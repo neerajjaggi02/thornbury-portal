@@ -451,7 +451,27 @@ with tabs[1]:
                 st.success(
                     "✅ Discovery responses saved."
                 )
+# --------------------------------------------------------
+    # SUBMISSION HISTORY (CLIENT TRANSPARENCY)
+    # --------------------------------------------------------
+    st.divider()
+    st.subheader("🗄️ Discovery History")
 
+    # 1. Fetch the data
+    discovery_df = read_sheet("Discovery", discovery_columns)
+
+    if not discovery_df.empty:
+        # 2. Reverse the data so newest is at the top
+        discovery_reversed = discovery_df.iloc[::-1]
+
+        # 3. Display it as a clean, interactive table
+        st.dataframe(
+            discovery_reversed,
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("No discovery sessions have been recorded yet.")
 # ============================================================
 # 3. WEBSITE
 # ============================================================

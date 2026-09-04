@@ -24,7 +24,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 # CONFIGURATION
 # ============================================================
 
-SHEET_URL = st.secrets["THORNBURY_SHEET_URL"]
+SHEET_URL = "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit"
 
 # ============================================================
 # HELPER FUNCTIONS

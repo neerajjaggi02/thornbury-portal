@@ -230,25 +230,30 @@ with tabs[0]:
     with col_wins:
         st.success(f"**🏆 Latest Weekly Update:**\n\n{latest_win_text}")
 
-    # --------------------------------------------------------
+   # --------------------------------------------------------
     # STREAM B: CLIENT ACTION ITEMS & QUESTIONS
     # --------------------------------------------------------
     action_cols = ["Timestamp", "Task / Question", "Status", "Client Response"]
     action_df = read_sheet("Client_Action_Items", action_cols)
+
+    # Force string types to prevent Pandas dtype errors when updating cells
+    if not action_df.empty:
+        for col in action_df.columns:
+            action_df[col] = action_df[col].astype(str)
 
     with col_needs:
         st.warning("**⏳ Action Items & Questions for You:**")
         
         has_open = False
         if not action_df.empty:
-            open_items = action_df[action_df["Status"].astype(str).str.lower() == "open"]
+            open_items = action_df[action_df["Status"].str.lower() == "open"]
             
             if not open_items.empty:
                 has_open = True
                 for idx, row in open_items.iterrows():
                     with st.container(border=True):
                         st.markdown(f"**📌 {row['Task / Question']}**")
-                        if row['Client Response']:
+                        if row['Client Response'] and row['Client Response'] != "nan" and row['Client Response'] != "":
                             st.caption(f"Your last reply: {row['Client Response']}")
                         
                         # Client Reply Form
@@ -265,7 +270,7 @@ with tabs[0]:
                                 if not client_reply.strip():
                                     st.error("⚠️ Reply cannot be blank.")
                                 else:
-                                    action_df.at[idx, "Client Response"] = client_reply
+                                    action_df.at[idx, "Client Response"] = str(client_reply)
                                     if update_sheet("Client_Action_Items", action_df):
                                         st.success("✅ Response sent!")
                                         time.sleep(1)
@@ -274,7 +279,7 @@ with tabs[0]:
                             elif mark_resolved:
                                 action_df.at[idx, "Status"] = "Resolved"
                                 if client_reply.strip():
-                                    action_df.at[idx, "Client Response"] = client_reply
+                                    action_df.at[idx, "Client Response"] = str(client_reply)
                                 if update_sheet("Client_Action_Items", action_df):
                                     st.success("✅ Task resolved!")
                                     time.sleep(1)

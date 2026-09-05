@@ -160,7 +160,6 @@ with st.sidebar:
     st.caption("Thornbury Taphouse + Thornbury Theatre")
     
     st.divider()
-st.divider()
 
     # --------------------------------------------------------
     # HIDDEN ADMIN ACCESS

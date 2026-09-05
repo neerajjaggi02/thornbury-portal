@@ -32,9 +32,8 @@ SHEET_URL = "https://docs.google.com/spreadsheets/d/1-2HTr0mOkl_Tis-ehO4apu8kqw4
 # ============================================================
 
 def read_sheet(worksheet, columns=None):
-    """Read a worksheet safely."""
+    """Read a worksheet safely with custom rate-limit alert handling."""
     try:
-        # Changed ttl=0 to ttl=600 (caches data for 10 minutes to prevent API limits)
         df = conn.read(
             spreadsheet=SHEET_URL,
             worksheet=worksheet,
@@ -56,25 +55,33 @@ def read_sheet(worksheet, columns=None):
         return df
 
     except Exception as e:
-        st.error(
-            f"Could not load worksheet '{worksheet}'. "
-            f"Please make sure the tab exists in Google Sheets. "
-            f"Error: {e}"
-        )
+        error_str = str(e)
+        # Check if the error is Google Sheets API Rate Limit (429)
+        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "Quota exceeded" in error_str:
+            st.error(
+                "🚨 **Google Sheets API Rate Limit Reached (Error 429)**\n\n"
+                "You are clicking too fast or refreshing too many tabs simultaneously. "
+                "Google allows a maximum of 60 read requests per minute.\n\n"
+                "⏳ *Please wait 60 seconds before trying again, or click the button below to clear the cache.*"
+            )
+            if st.button("🧹 Clear App Cache & Reset"):
+                st.cache_data.clear()
+                st.rerun()
+        else:
+            st.error(
+                f"Could not load worksheet '{worksheet}'. "
+                f"Please make sure the tab exists in Google Sheets. "
+                f"Error: {e}"
+            )
         return pd.DataFrame(columns=columns or [])
 
 
 def append_to_sheet(worksheet, new_row, columns):
-    """Append one row to a Google Sheet worksheet."""
+    """Append one row to a Google Sheet worksheet with error handling."""
     try:
         existing = read_sheet(worksheet, columns)
-
         new_df = pd.DataFrame([new_row], columns=columns)
-
-        updated = pd.concat(
-            [existing, new_df],
-            ignore_index=True
-        )
+        updated = pd.concat([existing, new_df], ignore_index=True)
 
         conn.update(
             spreadsheet=SHEET_URL,
@@ -82,18 +89,23 @@ def append_to_sheet(worksheet, new_row, columns):
             data=updated
         )
         
-        # Clear the cache so the app immediately shows the new data
         st.cache_data.clear()
-
         return True
 
     except Exception as e:
-        st.error(f"Could not save data: {e}")
+        error_str = str(e)
+        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "Quota exceeded" in error_str:
+            st.error(
+                "🚨 **Google Sheets API Rate Limit Reached (Error 429)**\n\n"
+                "Your save request was blocked because Google's write quota was temporarily exceeded. Please wait a minute and try saving again."
+            )
+        else:
+            st.error(f"Could not save data: {e}")
         return False
 
 
 def update_sheet(worksheet, df):
-    """Replace worksheet contents."""
+    """Replace worksheet contents with error handling."""
     try:
         conn.update(
             spreadsheet=SHEET_URL,
@@ -101,13 +113,18 @@ def update_sheet(worksheet, df):
             data=df
         )
         
-        # Clear the cache so the app immediately shows the new data
         st.cache_data.clear()
-        
         return True
 
     except Exception as e:
-        st.error(f"Could not update sheet: {e}")
+        error_str = str(e)
+        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "Quota exceeded" in error_str:
+            st.error(
+                "🚨 **Google Sheets API Rate Limit Reached (Error 429)**\n\n"
+                "Your update request was blocked because Google's write quota was temporarily exceeded. Please wait a minute and try again."
+            )
+        else:
+            st.error(f"Could not update sheet: {e}")
         return False
 
 
@@ -117,7 +134,6 @@ def metric_card(label, value, delta=None):
         value=value,
         delta=delta
     )
-
 
 # ============================================================
 # SIDEBAR

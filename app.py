@@ -230,7 +230,7 @@ with tabs[0]:
     with col_wins:
         st.success(f"**🏆 Latest Weekly Update:**\n\n{latest_win_text}")
 
-   # --------------------------------------------------------
+  # --------------------------------------------------------
     # STREAM B: CLIENT ACTION ITEMS & QUESTIONS
     # --------------------------------------------------------
     action_cols = ["Timestamp", "Task / Question", "Status", "Client Response"]
@@ -289,7 +289,7 @@ with tabs[0]:
             st.info("🎉 All caught up! No pending questions right now.")
 
     # ========================================================
-    # MARKETING MANAGER ADMIN CONTROLS
+    # MARKETING MANAGER ADMIN CONTROLS (With Status Reversal)
     # ========================================================
     if view_mode == "Marketing Manager":
         st.divider()
@@ -297,7 +297,7 @@ with tabs[0]:
         
         m_col1, m_col2 = st.columns(2)
         
-        # 1. Post a Weekly Status Update (Input starts blank)
+        # 1. Post a Weekly Status Update
         with m_col1:
             with st.expander("📝 Post New Weekly Status", expanded=False):
                 with st.form("weekly_status_form"):
@@ -317,7 +317,7 @@ with tabs[0]:
                                 time.sleep(1)
                                 st.rerun()
 
-        # 2. Ask a New Question / Create Action Item (Input starts blank)
+        # 2. Ask a New Question / Create Action Item
         with m_col2:
             with st.expander("❓ Ask a New Question to Client", expanded=False):
                 with st.form("new_action_form"):
@@ -338,6 +338,29 @@ with tabs[0]:
                                 st.success("✅ Question sent to client!")
                                 time.sleep(1)
                                 st.rerun()
+
+        # 3. Manage & Reopen Resolved Tasks (Reverse Function)
+        st.markdown("#### 🔄 Manage & Reopen Past Questions")
+        with st.expander("View Resolved / History Log & Reopen Tasks", expanded=False):
+            if not action_df.empty:
+                resolved_items = action_df[action_df["Status"].str.lower() == "resolved"]
+                
+                if resolved_items.empty:
+                    st.info("No resolved tasks in history.")
+                else:
+                    for r_idx, r_row in resolved_items.iterrows():
+                        with st.container(border=True):
+                            st.markdown(f"**📌 {r_row['Task / Question']}**")
+                            st.caption(f"Last Client Response: {r_row['Client Response'] or 'None'}")
+                            
+                            if st.button("↩️ Reopen Task (Set to Open)", key=f"reopen_{r_idx}"):
+                                action_df.at[r_idx, "Status"] = "Open"
+                                if update_sheet("Client_Action_Items", action_df):
+                                    st.success("✅ Task reopened and moved back to client queue!")
+                                    time.sleep(1)
+                                    st.rerun()
+            else:
+                st.info("No action items recorded yet.")
 
    # --------------------------------------------------------
     # CONSOLIDATED ROI SNAPSHOT

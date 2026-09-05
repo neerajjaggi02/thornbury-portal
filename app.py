@@ -145,14 +145,7 @@ def metric_card(label, value, delta=None):
 # ============================================================
 
 with st.sidebar:
-st.divider()
-    
-    # Global Sync / Refresh Button for Real-Time Google Sheets Deletions
-    if st.button("🔄 Sync with Google Sheets"):
-        st.cache_data.clear()
-        st.success("Cache cleared! Pulling latest data...")
-        time.sleep(0.8)
-        st.rerun()
+
     st.title("🏢 Thornbury")
     st.caption("Growth Command Centre")
     st.divider()
@@ -167,7 +160,28 @@ st.divider()
     st.caption("Thornbury Taphouse + Thornbury Theatre")
     
     st.divider()
+st.divider()
 
+    # --------------------------------------------------------
+    # HIDDEN ADMIN ACCESS
+    # --------------------------------------------------------
+    with st.expander("⚙️ Settings"):
+        admin_password = st.text_input("Agency Access", type="password")
+
+    if admin_password == "growth2026":  # Change to your preferred password
+        view_mode = "Marketing Manager"
+        st.success("🔓 Marketing Manager View Unlocked")
+    else:
+        view_mode = "Client View"
+
+    st.divider()
+    
+    # Global Sync / Refresh Button for Real-Time Google Sheets Deletions
+    if st.button("🔄 Sync with Google Sheets"):
+        st.cache_data.clear()
+        st.success("Cache cleared! Pulling latest data...")
+        time.sleep(0.8)
+        st.rerun()
     # --------------------------------------------------------
     # HIDDEN ADMIN ACCESS
     # --------------------------------------------------------

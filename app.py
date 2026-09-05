@@ -181,21 +181,7 @@ with st.sidebar:
         st.success("Cache cleared! Pulling latest data...")
         time.sleep(0.8)
         st.rerun()
-    # --------------------------------------------------------
-    # HIDDEN ADMIN ACCESS
-    # --------------------------------------------------------
-    # We hide the password field inside an expander so it doesn't distract the client
-    with st.expander("⚙️ Settings"):
-        admin_password = st.text_input("Agency Access", type="password")
-
-    # If the password matches, unlock the manager view. 
-    # Otherwise, force it into Client View.
-    if admin_password == "growth2026":  # Change "growth2026" to your preferred password
-        view_mode = "Marketing Manager"
-        st.success("🔓 Marketing Manager View Unlocked")
-    else:
-        view_mode = "Client View"
-
+  
 # ============================================================
 # HEADER
 # ============================================================

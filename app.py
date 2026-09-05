@@ -195,50 +195,128 @@ with tabs[0]:
     st.header("🏠 Executive Dashboard")
 
     # --------------------------------------------------------
-    # WEEKLY WINS & ACTION BOARD
+    # WEEKLY WINS & ACTION BOARD (SEPARATE STREAMS)
     # --------------------------------------------------------
-    update_cols = ["Timestamp", "Weekly Wins", "Needs from Client"]
-    update_df = read_sheet("Weekly_Update_Data", update_cols)
+    st.subheader("📣 Weekly Status & Action Items")
 
-    # Set default text if sheet is empty
-    latest_wins = "No updates recorded yet."
-    latest_needs = "No pending actions required."
-    
-    # Grab the most recent entry if data exists
-    if not update_df.empty:
-        latest_row = update_df.iloc[-1]
-        latest_wins = latest_row["Weekly Wins"]
-        latest_needs = latest_row["Needs from Client"]
-
-    st.subheader("📣 Weekly Status")
-    
     col_wins, col_needs = st.columns(2)
+
+    # --------------------------------------------------------
+    # STREAM A: WEEKLY STATUS UPDATES (Read-Only for Client)
+    # --------------------------------------------------------
+    wins_cols = ["Timestamp", "Weekly Update"]
+    wins_df = read_sheet("Weekly_Wins_Data", wins_cols)
+    
+    latest_win_text = "No updates posted yet."
+    if not wins_df.empty:
+        latest_win_text = wins_df.iloc[-1]["Weekly Update"]
+
     with col_wins:
-        st.success(f"**🏆 Wins This Week:**\n\n{latest_wins}")
+        st.success(f"**🏆 Latest Weekly Update:**\n\n{latest_win_text}")
+
+    # --------------------------------------------------------
+    # STREAM B: CLIENT ACTION ITEMS & QUESTIONS
+    # --------------------------------------------------------
+    action_cols = ["Timestamp", "Task / Question", "Status", "Client Response"]
+    action_df = read_sheet("Client_Action_Items", action_cols)
+
     with col_needs:
-        st.warning(f"**⏳ Needs From You:**\n\n{latest_needs}")
+        st.warning("**⏳ Action Items & Questions for You:**")
+        
+        has_open = False
+        if not action_df.empty:
+            open_items = action_df[action_df["Status"].astype(str).str.lower() == "open"]
+            
+            if not open_items.empty:
+                has_open = True
+                for idx, row in open_items.iterrows():
+                    with st.container(border=True):
+                        st.markdown(f"**📌 {row['Task / Question']}**")
+                        if row['Client Response']:
+                            st.caption(f"Your last reply: {row['Client Response']}")
+                        
+                        # Client Reply Form
+                        with st.form(key=f"reply_form_{idx}"):
+                            client_reply = st.text_input("Type your response:", key=f"input_{idx}")
+                            
+                            c_btn1, c_btn2 = st.columns(2)
+                            with c_btn1:
+                                submit_reply = st.form_submit_button("💬 Send Answer")
+                            with c_btn2:
+                                mark_resolved = st.form_submit_button("✅ Resolve Task")
+                                
+                            if submit_reply:
+                                if not client_reply.strip():
+                                    st.error("⚠️ Reply cannot be blank.")
+                                else:
+                                    action_df.at[idx, "Client Response"] = client_reply
+                                    if update_sheet("Client_Action_Items", action_df):
+                                        st.success("✅ Response sent!")
+                                        time.sleep(1)
+                                        st.rerun()
+                                        
+                            elif mark_resolved:
+                                action_df.at[idx, "Status"] = "Resolved"
+                                if client_reply.strip():
+                                    action_df.at[idx, "Client Response"] = client_reply
+                                if update_sheet("Client_Action_Items", action_df):
+                                    st.success("✅ Task resolved!")
+                                    time.sleep(1)
+                                    st.rerun()
 
-    # Manager-only edit form
+        if not has_open:
+            st.info("🎉 All caught up! No pending questions right now.")
+
+    # ========================================================
+    # MARKETING MANAGER ADMIN CONTROLS
+    # ========================================================
     if view_mode == "Marketing Manager":
-        with st.expander("✏️ Update Weekly Status", expanded=False):
-            with st.form("weekly_update_form"):
-                new_wins = st.text_area("Weekly Wins (Use bullets or short sentences)", value=latest_wins, height=150)
-                new_needs = st.text_area("Needs from Client (Approvals, assets, etc.)", value=latest_needs, height=150)
-                
-                update_submit = st.form_submit_button("💾 Post Update to Client Dashboard")
-                
-                if update_submit:
-                    row = {
-                        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "Weekly Wins": new_wins,
-                        "Needs from Client": new_needs
-                    }
-                    if append_to_sheet("Weekly_Update_Data", row, update_cols):
-                        st.success("✅ Dashboard updated!")
-                        time.sleep(1.5)  # Pauses for 1.5 seconds
-                        st.rerun()       # Now refreshes the page
+        st.divider()
+        st.markdown("### ⚙️ Manager Update Controls")
+        
+        m_col1, m_col2 = st.columns(2)
+        
+        # 1. Post a Weekly Status Update (Input starts blank)
+        with m_col1:
+            with st.expander("📝 Post New Weekly Status", expanded=False):
+                with st.form("weekly_status_form"):
+                    new_win_input = st.text_area("Write weekly update / milestone:", value="", height=120)
+                    win_submit = st.form_submit_button("🚀 Publish Status Update")
+                    
+                    if win_submit:
+                        if not new_win_input.strip():
+                            st.error("⚠️ Status update cannot be blank.")
+                        else:
+                            row = {
+                                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "Weekly Update": new_win_input.strip()
+                            }
+                            if append_to_sheet("Weekly_Wins_Data", row, wins_cols):
+                                st.success("✅ Weekly update published!")
+                                time.sleep(1)
+                                st.rerun()
 
-    st.divider()
+        # 2. Ask a New Question / Create Action Item (Input starts blank)
+        with m_col2:
+            with st.expander("❓ Ask a New Question to Client", expanded=False):
+                with st.form("new_action_form"):
+                    new_question_input = st.text_area("What do you need from the client?", value="", height=120)
+                    question_submit = st.form_submit_button("📤 Send Question to Client")
+                    
+                    if question_submit:
+                        if not new_question_input.strip():
+                            st.error("⚠️ Question cannot be blank.")
+                        else:
+                            new_row = {
+                                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "Task / Question": new_question_input.strip(),
+                                "Status": "Open",
+                                "Client Response": ""
+                            }
+                            if append_to_sheet("Client_Action_Items", new_row, action_cols):
+                                st.success("✅ Question sent to client!")
+                                time.sleep(1)
+                                st.rerun()
 
    # --------------------------------------------------------
     # CONSOLIDATED ROI SNAPSHOT

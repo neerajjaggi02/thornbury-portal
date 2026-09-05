@@ -31,9 +31,15 @@ SHEET_URL = "https://docs.google.com/spreadsheets/d/1-2HTr0mOkl_Tis-ehO4apu8kqw4
 # HELPER FUNCTIONS
 # ============================================================
 
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
 def read_sheet(worksheet, columns=None):
-    """Read a worksheet safely with custom rate-limit alert handling."""
+    """Read a worksheet safely with instant sync capability."""
     try:
+        # We keep ttl=600 for performance, but if data was deleted in the sheet,
+        # clearing the cache or reloading the page pulls the fresh state instantly.
         df = conn.read(
             spreadsheet=SHEET_URL,
             worksheet=worksheet,
@@ -56,15 +62,14 @@ def read_sheet(worksheet, columns=None):
 
     except Exception as e:
         error_str = str(e)
-        # Check if the error is Google Sheets API Rate Limit (429)
         if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "Quota exceeded" in error_str:
             st.error(
                 "🚨 **Google Sheets API Rate Limit Reached (Error 429)**\n\n"
                 "You are clicking too fast or refreshing too many tabs simultaneously. "
                 "Google allows a maximum of 60 read requests per minute.\n\n"
-                "⏳ *Please wait 60 seconds before trying again, or click the button below to clear the cache.*"
+                "⏳ *Please wait 60 seconds before trying again.*"
             )
-            if st.button("🧹 Clear App Cache & Reset"):
+            if st.button("🧹 Clear App Cache & Reset", key=f"cache_reset_{worksheet}"):
                 st.cache_data.clear()
                 st.rerun()
         else:
@@ -140,7 +145,14 @@ def metric_card(label, value, delta=None):
 # ============================================================
 
 with st.sidebar:
-
+st.divider()
+    
+    # Global Sync / Refresh Button for Real-Time Google Sheets Deletions
+    if st.button("🔄 Sync with Google Sheets"):
+        st.cache_data.clear()
+        st.success("Cache cleared! Pulling latest data...")
+        time.sleep(0.8)
+        st.rerun()
     st.title("🏢 Thornbury")
     st.caption("Growth Command Centre")
     st.divider()

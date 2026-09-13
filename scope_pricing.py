@@ -7,7 +7,7 @@ def render_scope_pricing():
     # 1. DOWNLOAD LINK
     # ========================================================
     try:
-        with open("marketing-plan_2.docx", "rb") as file:
+        with open("marketing-plan.docx", "rb") as file:
             st.download_button(
                 label="📄 Download Full Proposal (Word Doc)",
                 data=file,

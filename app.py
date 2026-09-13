@@ -1,8 +1,10 @@
+from scope_pricing import render_scope_pricing
 import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 from datetime import datetime, date
 import time
+
 
 # ============================================================
 # PAGE CONFIGURATION

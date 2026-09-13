@@ -15,7 +15,14 @@ st.set_page_config(
     page_icon="🏢",
     initial_sidebar_state="expanded"
 )
-
+# ============================================================
+# LOAD CUSTOM CSS
+# ============================================================
+try:
+    with open("style.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
 # ============================================================
 # GOOGLE SHEETS CONNECTION
 # ============================================================
@@ -137,23 +144,31 @@ def metric_card(label, value, delta=None):
         delta=delta
     )
 
-# ============================================================
-# SIDEBAR
-# ============================================================
-
 with st.sidebar:
     st.title("🏢 Thornbury")
     st.caption("Growth Command Centre")
     st.divider()
 
-    st.markdown("### Project Focus")
-    st.success("🍽️ Restaurant Weekly Offers")
-    st.info("🎭 Thornbury Theatre Events")
-    st.success("📧 CRM & Repeat Business")
+    # Create a clean vertical navigation menu instead of horizontal tabs
+    st.markdown("### 🧭 Navigation")
+    selected_page = st.radio(
+        "Go to:",
+        [
+            "🏠 Dashboard",
+            "📋 Discovery",
+            "🌐 Website",
+            "🍽️ Restaurant Weekly Offers",
+            "🎭 Thornbury Theatre Events",
+            "🎬 Content Studio",
+            "📧 CRM & Loyalty",
+            "📊 Analytics",
+            "🗓️ 90-Day Roadmap",
+            "📁 Asset Repository",
+            "📑 Scope & Pricing"
+        ],
+        label_visibility="collapsed" # Hides the "Go to:" text for a cleaner look
+    )
 
-    st.divider()
-    st.caption("Thornbury Taphouse + Thornbury Theatre")
-    
     st.divider()
 
     # --------------------------------------------------------
@@ -164,18 +179,13 @@ with st.sidebar:
 
     if admin_password == "growth2026":  
         view_mode = "Marketing Manager"
-        st.success("🔓 Marketing Manager View Unlocked")
+        st.success("🔓 Manager View")
     else:
         view_mode = "Client View"
-
-    st.divider()
-    
-    if st.button("🔄 Sync with Google Sheets"):
+        
+    if st.button("🔄 Sync Data"):
         st.cache_data.clear()
-        st.success("Cache cleared! Pulling latest data...")
-        time.sleep(0.8)
         st.rerun()
-
 # ============================================================
 # TABS
 # ============================================================

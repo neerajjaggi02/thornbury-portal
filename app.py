@@ -15,6 +15,7 @@ st.set_page_config(
     page_icon="🏢",
     initial_sidebar_state="expanded"
 )
+
 # ============================================================
 # LOAD CUSTOM CSS
 # ============================================================
@@ -23,6 +24,7 @@ try:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
     pass
+
 # ============================================================
 # GOOGLE SHEETS CONNECTION
 # ============================================================
@@ -42,8 +44,6 @@ SHEET_URL = "https://docs.google.com/spreadsheets/d/1-2HTr0mOkl_Tis-ehO4apu8kqw4
 def read_sheet(worksheet, columns=None):
     """Read a worksheet safely with instant sync capability."""
     try:
-        # We keep ttl=600 for performance, but if data was deleted in the sheet,
-        # clearing the cache or reloading the page pulls the fresh state instantly.
         df = conn.read(
             spreadsheet=SHEET_URL,
             worksheet=worksheet,
@@ -59,7 +59,6 @@ def read_sheet(worksheet, columns=None):
             for col in columns:
                 if col not in df.columns:
                     df[col] = ""
-
             df = df[columns]
 
         return df
@@ -144,48 +143,62 @@ def metric_card(label, value, delta=None):
         delta=delta
     )
 
+# ============================================================
+# SIDEBAR
+# ============================================================
+
 with st.sidebar:
     st.title("🏢 Thornbury")
     st.caption("Growth Command Centre")
     st.divider()
 
-    # Create a clean vertical navigation menu instead of horizontal tabs
-    st.markdown("### 🧭 Navigation")
-    selected_page = st.radio(
-        "Go to:",
-        [
-            "🏠 Dashboard",
-            "📋 Discovery",
-            "🌐 Website",
-            "🍽️ Restaurant Weekly Offers",
-            "🎭 Thornbury Theatre Events",
-            "🎬 Content Studio",
-            "📧 CRM & Loyalty",
-            "📊 Analytics",
-            "🗓️ 90-Day Roadmap",
-            "📁 Asset Repository",
-            "📑 Scope & Pricing"
-        ],
-        label_visibility="collapsed" # Hides the "Go to:" text for a cleaner look
-    )
+    st.markdown("### Project Focus")
+    st.success("🍽️ Weekday Restaurant Growth")
+    st.info("💼 Corporate Theatre Sales")
+    st.warning("🌐 Website Conversion")
+    st.success("📧 CRM & Repeat Business")
 
+    st.divider()
+    st.caption("Thornbury Taphouse + Thornbury Theatre")
+    
     st.divider()
 
     # --------------------------------------------------------
     # HIDDEN ADMIN ACCESS
     # --------------------------------------------------------
     with st.expander("⚙️ Settings"):
-        admin_password = st.text_input("Agency Access", type="password", key="admin_password_input")
+        admin_password = st.text_input("Agency Access", type="password")
 
     if admin_password == "growth2026":  
         view_mode = "Marketing Manager"
-        st.success("🔓 Manager View")
+        st.success("🔓 Marketing Manager View Unlocked")
     else:
         view_mode = "Client View"
-        
-    if st.button("🔄 Sync Data"):
+
+    st.divider()
+    
+    # Global Sync / Refresh Button for Real-Time Google Sheets Deletions
+    if st.button("🔄 Sync with Google Sheets"):
         st.cache_data.clear()
+        st.success("Cache cleared! Pulling latest data...")
+        time.sleep(0.8)
         st.rerun()
+
+# ============================================================
+# HEADER
+# ============================================================
+
+st.title("THORNBURY GROWTH COMMAND CENTRE")
+
+st.markdown(
+    """
+    **Digital marketing, website, restaurant growth, theatre sales,
+    content and KPI management in one place.**
+    """
+)
+
+st.divider()
+
 # ============================================================
 # TABS
 # ============================================================
@@ -194,14 +207,12 @@ tabs = st.tabs([
     "🏠 Dashboard",
     "📋 Discovery",
     "🌐 Website",
-    "🍽️ Restaurant Weekly Offers",
-    "🎭 Thornbury Theatre Events",
+    "🍽️ Restaurant Growth",
+    "💼 Corporate B2B",
     "🎬 Content Studio",
     "📧 CRM & Loyalty",
     "📊 Analytics",
-    "🗓️ 90-Day Roadmap",
-    "📁 Asset Repository",
-    "📑 Scope & Pricing"
+    "🗓️ 90-Day Roadmap"
 ])
 
 # ============================================================
@@ -593,6 +604,7 @@ with tabs[1]:
         )
 
         if submitted:
+
             row = {
                 "Timestamp": datetime.now().strftime(
                     "%Y-%m-%d %H:%M:%S"
@@ -617,8 +629,7 @@ with tabs[1]:
                 st.success(
                     "✅ Discovery responses saved."
                 )
-
-    # --------------------------------------------------------
+# --------------------------------------------------------
     # SUBMISSION HISTORY (CLIENT TRANSPARENCY)
     # --------------------------------------------------------
     st.divider()
@@ -743,82 +754,328 @@ HOME
 """)
 
 # ============================================================
-# 4. RESTAURANT WEEKLY OFFERS
+# 4. RESTAURANT GROWTH
 # ============================================================
 
 with tabs[3]:
-    st.header("🍽️ Restaurant Weekly Offers")
-    st.markdown("Manage and track weekly promotions.")
 
-    with st.form("weekly_offers_form"):
-        offer_day = st.selectbox("Day of Week", ["Monday", "Tuesday", "Wednesday", "Thursday", "Weekend"])
-        offer_name = st.text_input("Offer Name", placeholder="e.g., Tap Tuesday")
-        offer_description = st.text_area("Offer Details")
+    st.header("🍽️ Restaurant Weekday Growth")
+    st.markdown("Build repeatable reasons for customers to visit Monday–Thursday.")
+
+    # Wrap all inputs in a form so they save together
+    with st.form("restaurant_growth_form"):
         
-        if st.form_submit_button("💾 Save Offer") and offer_name:
-            row = {
-                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Day": offer_day,
-                "Offer Name": offer_name,
-                "Description": offer_description
-            }
-            if append_to_sheet("Restaurant_Offers", row, ["Timestamp", "Day", "Offer Name", "Description"]):
-                st.success("✅ Weekly offer saved.")
-                time.sleep(1)
-                st.rerun()
+        days = ["Monday", "Tuesday", "Wednesday", "Thursday"]
+        day_inputs = {}
 
+        # Generate the daily input cards
+        for day in days:
+            with st.expander(f"{day} Metrics", expanded=(day == "Tuesday")):
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    c = st.number_input(f"{day} covers", min_value=0, step=1, key=f"{day}_covers")
+                with col2:
+                    r = st.number_input(f"{day} revenue ($)", min_value=0, step=100, key=f"{day}_revenue")
+                with col3:
+                    t = st.number_input(f"{day} target covers", min_value=0, step=5, key=f"{day}_target")
+                
+                # Store inputs in a dictionary to process upon save
+                day_inputs[day] = {"Covers": c, "Revenue": r, "Target": t}
+                
+                if t > 0:
+                    achievement = min(c / t, 1)
+                    st.progress(achievement, text=f"{c}/{t} covers")
+
+        st.divider()
+
+        st.subheader("🔥 Super Tuesday Activation")
+
+        activation = st.selectbox(
+            "Current Tuesday activation",
+            ["Tap Tuesday", "Local Hospo Night", "Secret Menu", "Trivia Night", "Live Music", "Other"]
+        )
+
+        description = st.text_area(
+            "Tuesday offer / campaign description",
+            placeholder="Example: rotating taps + Tuesday-only food special."
+        )
+
+        # The Save Button
+        restaurant_submit = st.form_submit_button("💾 Save Restaurant Data")
+
+        if restaurant_submit:
+            # 1. Update the Monday-Thursday metrics in Restaurant_Data tab
+            rest_data = []
+            for day in days:
+                rest_data.append({
+                    "Day": day,
+                    "Covers": day_inputs[day]["Covers"],
+                    "Target": day_inputs[day]["Target"],
+                    "Revenue": day_inputs[day]["Revenue"]
+                })
+            
+            df_rest = pd.DataFrame(rest_data)
+            
+            # Note: This uses update_sheet to OVERWRITE the current week's data 
+            # so your Analytics charts stay clean.
+            update_success = update_sheet("Restaurant_Data", df_rest)
+
+            # 2. Append the Tuesday Activation record
+            activation_row = {
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Activation": activation,
+                "Description": description
+            }
+            
+            activation_success = append_to_sheet(
+                "Tuesday_Activation", 
+                activation_row, 
+                ["Timestamp", "Activation", "Description"]
+            )
+
+            if update_success and activation_success:
+                st.success("✅ Restaurant metrics and Super Tuesday data saved successfully.")
+
+    # --------------------------------------------------------
+    # DISPLAY CURRENT METRICS OUTSIDE THE FORM
+    # --------------------------------------------------------
     st.divider()
-    st.subheader("🗄️ Active Offers Log")
     
-    offers_df = read_sheet("Restaurant_Offers", ["Timestamp", "Day", "Offer Name", "Description"])
-    if not offers_df.empty:
-        st.dataframe(offers_df.iloc[::-1], use_container_width=True, hide_index=True)
+    st.info(
+        "Recommendation: test one strong Tuesday proposition for 4–6 weeks and compare "
+        "incremental covers, revenue, average spend and repeat visits."
+    )
+# --------------------------------------------------------
+    # TUESDAY ACTIVATION HISTORY (CLIENT TRANSPARENCY)
+    # --------------------------------------------------------
+    st.divider()
+    st.subheader("🗄️ Super Tuesday Activation History")
+    
+    tuesday_cols = ["Timestamp", "Activation", "Description"]
+    tuesday_df = read_sheet("Tuesday_Activation", tuesday_cols)
+    
+    if not tuesday_df.empty:
+        st.dataframe(
+            tuesday_df.iloc[::-1],
+            use_container_width=True,
+            hide_index=True
+        )
     else:
-        st.info("No active offers recorded yet.")
+        st.info("No Tuesday campaigns have been recorded yet.")
 
 # ============================================================
-# 5. THORNBURY THEATRE EVENTS
+# 5. CORPORATE B2B
 # ============================================================
 
 with tabs[4]:
-    st.header("🎭 Thornbury Theatre Events")
-    st.markdown("Track upcoming shows and ticket links.")
 
-    event_columns = ["Timestamp", "Event Name", "Event Date", "Ticket Link", "Status", "Notes"]
+    st.header("💼 Corporate Theatre B2B")
 
-    with st.form("theatre_events_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            event_name = st.text_input("Event Name")
-            event_date = st.date_input("Event Date", value=date.today())
-        with col2:
-            ticket_link = st.text_input("Ticketing URL")
-            event_status = st.selectbox("Status", ["Announced", "On Sale", "Sold Out", "Completed"])
-        
-        event_notes = st.text_area("Event Notes")
-        
-        if st.form_submit_button("💾 Save Event") and event_name:
-            row = {
-                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Event Name": event_name,
-                "Event Date": str(event_date),
-                "Ticket Link": ticket_link,
-                "Status": event_status,
-                "Notes": event_notes
-            }
-            if append_to_sheet("Theatre_Events", row, event_columns):
-                st.success("✅ Theatre event logged.")
-                time.sleep(1)
-                st.rerun()
+    st.markdown(
+        "Generate Monday–Thursday corporate and private-event demand."
+    )
+
+    # --------------------------------------------------------
+    # PIPELINE
+    # --------------------------------------------------------
+
+    st.subheader("Corporate Pipeline")
+
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+
+    pipeline_metrics = [
+        ("Prospects", "47"),
+        ("Contacted", "31"),
+        ("Replies", "9"),
+        ("Qualified", "6"),
+        ("Quotes", "4"),
+        ("Booked", "2")
+    ]
+
+    for col, (label, value) in zip(
+        [c1, c2, c3, c4, c5, c6],
+        pipeline_metrics
+    ):
+        with col:
+            metric_card(label, value)
 
     st.divider()
-    st.subheader("🗄️ Event Schedule")
+
+    # --------------------------------------------------------
+    # ADD LEAD
+    # --------------------------------------------------------
+
+    st.subheader("➕ Add Corporate Lead")
+
+    lead_columns = [
+        "Timestamp",
+        "Company",
+        "Contact",
+        "Job Title",
+        "LinkedIn",
+        "Email",
+        "Event Type",
+        "Guests",
+        "Budget",
+        "Status",
+        "Last Contact",
+        "Next Follow-up",
+        "Notes"
+    ]
+
+    with st.form("corporate_lead_form"):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            company = st.text_input("Company")
+
+            contact = st.text_input("Contact Person")
+
+            job_title = st.text_input("Job Title")
+
+            linkedin = st.text_input(
+                "LinkedIn Profile"
+            )
+
+            email = st.text_input("Email")
+
+        with col2:
+
+            event_type = st.selectbox(
+                "Event Type",
+                [
+                    "Product Launch",
+                    "Conference",
+                    "Awards Night",
+                    "EOFY",
+                    "Christmas Party",
+                    "Team Event",
+                    "Networking",
+                    "Client Entertainment",
+                    "Brand Activation",
+                    "Private Event",
+                    "Other"
+                ]
+            )
+
+            guests = st.number_input(
+                "Estimated Guests",
+                min_value=0,
+                step=10
+            )
+
+            budget = st.number_input(
+                "Estimated Budget ($AUD)",
+                min_value=0,
+                step=500
+            )
+
+            status = st.selectbox(
+                "Pipeline Status",
+                [
+                    "Prospect",
+                    "Contacted",
+                    "Replied",
+                    "Qualified",
+                    "Quote Sent",
+                    "Negotiation",
+                    "Booked",
+                    "Lost"
+                ]
+            )
+
+        notes = st.text_area("Notes")
+
+        lead_submit = st.form_submit_button(
+            "Save Corporate Lead"
+        )
+
+        if lead_submit and company:
+
+            row = {
+                "Timestamp": datetime.now().strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+                "Company": company,
+                "Contact": contact,
+                "Job Title": job_title,
+                "LinkedIn": linkedin,
+                "Email": email,
+                "Event Type": event_type,
+                "Guests": guests,
+                "Budget": budget,
+                "Status": status,
+                "Last Contact": "",
+                "Next Follow-up": "",
+                "Notes": notes
+            }
+
+            if append_to_sheet(
+                "Corporate_Leads",
+                row,
+                lead_columns
+            ):
+                st.success(
+                    "✅ Corporate lead saved."
+                )
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # LINKEDIN OUTBOUND
+    # --------------------------------------------------------
+
+    st.subheader("🔗 Organic LinkedIn Outreach")
+
+    l1, l2, l3, l4, l5 = st.columns(5)
+
+    with l1:
+        metric_card("Prospects Researched", "18")
+
+    with l2:
+        metric_card("Connections Sent", "15")
+
+    with l3:
+        metric_card("Accepted", "8")
+
+    with l4:
+        metric_card("Replies", "4")
+
+    with l5:
+        metric_card("Qualified", "2")
+
+    st.markdown("""
+    **Target profiles**
+
+    - HR Managers
+    - People & Culture
+    - Executive Assistants
+    - Office Managers
+    - Marketing Managers
+    - Event Managers
+    - Event Agencies
+    - Conference Organisers
+    """)
+# --------------------------------------------------------
+    # CORPORATE LEADS HISTORY (CLIENT TRANSPARENCY)
+    # --------------------------------------------------------
+    st.divider()
+    st.subheader("🗄️ Corporate Leads History")
     
-    events_df = read_sheet("Theatre_Events", event_columns)
-    if not events_df.empty:
-        st.dataframe(events_df.iloc[::-1], use_container_width=True, hide_index=True)
+    leads_df = read_sheet("Corporate_Leads", lead_columns)
+    
+    if not leads_df.empty:
+        # Reverse the dataframe to show newest first
+        st.dataframe(
+            leads_df.iloc[::-1],
+            use_container_width=True,
+            hide_index=True
+        )
     else:
-        st.info("No upcoming events logged yet.")
+        st.info("No corporate leads have been recorded yet.")
 
 # ============================================================
 # 6. CONTENT STUDIO
@@ -1064,8 +1321,7 @@ with tabs[6]:
         "Use the existing customer database where legally permitted "
         "and ensure marketing communications have appropriate consent."
     )
-
-    # --------------------------------------------------------
+# --------------------------------------------------------
     # CRM HISTORY (CLIENT TRANSPARENCY)
     # --------------------------------------------------------
     st.divider()
@@ -1086,163 +1342,84 @@ with tabs[6]:
 # ============================================================
 
 with tabs[7]:
-    if view_mode == "Marketing Manager":
-        st.header("📊 Marketing Performance Dashboard")
-        st.caption("Use this area for validated business data.")
-        
-        # --------------------------------------------------------
-        # RESTAURANT
-        # --------------------------------------------------------
-        st.subheader("🍽️ Restaurant KPIs")
-        
-        restaurant_data = read_sheet("Restaurant_Data", ["Day", "Covers", "Target", "Revenue"])
 
-        st.dataframe(
-            restaurant_data,
-            use_container_width=True,
-            hide_index=True
-        )
+    st.header("📊 Marketing Performance Dashboard")
 
-        if not restaurant_data.empty:
-            st.bar_chart(
-                restaurant_data.set_index("Day")[
-                    ["Covers", "Target"]
-                ]
-            )
+    st.caption(
+        "Use this area for validated business data. "
+        "Demo values below should be replaced with connected data."
+    )
 
-        st.divider()
+    # --------------------------------------------------------
+    # RESTAURANT
+    # --------------------------------------------------------
 
-        # --------------------------------------------------------
-        # THEATRE
-        # --------------------------------------------------------
-        st.subheader("💼 Theatre KPIs")
+    st.subheader("🍽️ Restaurant KPIs")
+    
+    restaurant_data = read_sheet("Restaurant_Data", ["Day", "Covers", "Target", "Revenue"])
 
-        theatre_data = pd.DataFrame({
-            "Metric": [
-                "Corporate Enquiries",
-                "Qualified Leads",
-                "Quotes",
-                "Bookings"
-            ],
-            "Current": [
-                18,
-                6,
-                4,
-                2
-            ]
-        })
+    st.dataframe(
+        restaurant_data,
+        use_container_width=True,
+        hide_index=True
+    )
 
-        st.dataframe(
-            theatre_data,
-            use_container_width=True,
-            hide_index=True
-        )
+    st.bar_chart(
+        restaurant_data.set_index("Day")[
+            ["Covers", "Target"]
+        ]
+    )
 
-        st.divider()
+    st.divider()
 
-        # --------------------------------------------------------
-        # MARKETING
-        # --------------------------------------------------------
-        st.subheader("📈 Marketing KPIs")
+    # --------------------------------------------------------
+    # THEATRE
+    # --------------------------------------------------------
 
-        m1, m2, m3, m4 = st.columns(4)
+    st.subheader("💼 Theatre KPIs")
 
-        with m1:
-            metric_card("Website Visitors", "—")
-        with m2:
-            metric_card("Booking Conversion", "—")
-        with m3:
-            metric_card("Cost per Lead", "—")
-        with m4:
-            metric_card("ROAS", "—")
+    theatre_data = pd.DataFrame({
+        "Metric": [
+            "Corporate Enquiries",
+            "Qualified Leads",
+            "Quotes",
+            "Bookings"
+        ],
+        "Current": [
+            18,
+            6,
+            4,
+            2
+        ]
+    })
 
-        # ========================================================
-        # UTM LINK GENERATOR & REPOSITORY (Marketing Manager Only)
-        # ========================================================
-        st.divider()
-        st.subheader("🔗 UTM Tracking Link Generator & History")
-        st.markdown("Create clean, trackable URLs and save them to prevent campaign duplication.")
+    st.dataframe(
+        theatre_data,
+        use_container_width=True,
+        hide_index=True
+    )
 
-        utm_columns = ["Timestamp", "Campaign Name", "Destination URL", "Source", "Medium", "Final UTM URL"]
+    st.divider()
 
-        with st.form("utm_builder_form"):
-            base_url = st.text_input(
-                "Destination URL (Required)", 
-                placeholder="https://www.thornbury.com/corporate-events"
-            )
-            
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                utm_source = st.text_input("Source (Required)", placeholder="e.g., meta, google, newsletter")
-            with c2:
-                utm_medium = st.text_input("Medium (Required)", placeholder="e.g., cpc, social, email")
-            with c3:
-                utm_campaign = st.text_input("Campaign Name (Required)", placeholder="e.g., xmas_party_2026")
-                
-            c4, c5 = st.columns(2)
-            with c4:
-                utm_term = st.text_input("Term (Optional)", placeholder="e.g., corporate+venues")
-            with c5:
-                utm_content = st.text_input("Content (Optional)", placeholder="e.g., video_v1, image_v2")
+    # --------------------------------------------------------
+    # MARKETING
+    # --------------------------------------------------------
 
-            generate_utm = st.form_submit_button("🔨 Generate & Save Tracking Link")
+    st.subheader("📈 Marketing KPIs")
 
-            if generate_utm:
-                if base_url and utm_source and utm_medium and utm_campaign:
-                    import urllib.parse
-                    
-                    base_url = base_url.strip()
-                    if not base_url.startswith('http'):
-                        base_url = 'https://' + base_url
-                        
-                    clean_campaign = utm_campaign.strip().replace(" ", "_").lower()
-                    
-                    params = {
-                        'utm_source': utm_source.strip().lower(),
-                        'utm_medium': utm_medium.strip().lower(),
-                        'utm_campaign': clean_campaign
-                    }
-                    if utm_term:
-                        params['utm_term'] = utm_term.strip().replace(" ", "_").lower()
-                    if utm_content:
-                        params['utm_content'] = utm_content.strip().replace(" ", "_").lower()
-                        
-                    query_string = urllib.parse.urlencode(params)
-                    separator = '&' if '?' in base_url else '?'
-                    final_url = f"{base_url}{separator}{query_string}"
-                    
-                    # Package data to save to Google Sheets
-                    row = {
-                        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "Campaign Name": clean_campaign,
-                        "Destination URL": base_url,
-                        "Source": utm_source.strip().lower(),
-                        "Medium": utm_medium.strip().lower(),
-                        "Final UTM URL": final_url
-                    }
-                    
-                    if append_to_sheet("UTM_Links", row, utm_columns):
-                        st.success("✅ Tracking link generated and saved to history!")
-                        time.sleep(1)
-                        st.rerun()
-                else:
-                    st.error("⚠️ Please fill in all required fields: Destination URL, Source, Medium, and Campaign.")
+    m1, m2, m3, m4 = st.columns(4)
 
-        # Display history so you can check existing links before creating new ones
-        st.markdown("### 🗄️ Previously Generated Links")
-        utm_df = read_sheet("UTM_Links", utm_columns)
-        
-        if not utm_df.empty:
-            st.dataframe(
-                utm_df.iloc[::-1],
-                use_container_width=True,
-                hide_index=True
-            )
-        else:
-            st.info("No tracking links have been generated yet.")
+    with m1:
+        metric_card("Website Visitors", "—")
 
-    else:
-        st.info("🔒 Analytics and granular performance data are restricted to the Marketing Team.")
+    with m2:
+        metric_card("Booking Conversion", "—")
+
+    with m3:
+        metric_card("Cost per Lead", "—")
+
+    with m4:
+        metric_card("ROAS", "—")
 
 # ============================================================
 # 9. 90-DAY ROADMAP
@@ -1331,59 +1508,6 @@ with tabs[8]:
             # Overwrite the sheet so it acts as a permanent state tracker
             if update_sheet("Roadmap_Data", df_roadmap):
                 st.success("✅ Roadmap progress saved successfully!")
-
-# ============================================================
-# 10. ASSET REPOSITORY (DAM)
-# ============================================================
-
-with tabs[9]:
-    st.header("📁 Digital Asset Management")
-    st.markdown("Share and access centralized Google Drive or Dropbox links.")
-
-    st.subheader("☁️ Add a Cloud Storage Link")
-    
-    # 1. ADD LINK FORM (Now visible to Client and Manager)
-    with st.form("drive_link_form"):
-        c1, c2 = st.columns([1, 2])
-        with c1:
-            folder_name = st.text_input("Folder Name", placeholder="e.g., Raw Photos, Logos")
-        with c2:
-            folder_url = st.text_input("Shared Link URL")
-        
-        if st.form_submit_button("🔗 Save Folder Link") and folder_name and folder_url:
-            append_to_sheet(
-                "Asset_Links", 
-                {
-                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
-                    "Folder Name": folder_name, 
-                    "URL": folder_url
-                }, 
-                ["Timestamp", "Folder Name", "URL"]
-            )
-            st.success("✅ Link saved successfully!")
-            import time
-            time.sleep(1)
-            st.rerun()
-
-    st.divider()
-
-    # 2. VIEW SAVED LINKS (Visible to Everyone)
-    st.subheader("🗄️ Saved Asset Folders")
-    drive_df = read_sheet("Asset_Links", ["Timestamp", "Folder Name", "URL"])
-    
-    if not drive_df.empty:
-        # Show newest links at the top
-        for idx, row in drive_df.iloc[::-1].iterrows():
-            st.markdown(f"🔗 **{row['Folder Name']}**: [{row['URL']}]({row['URL']})")
-    else:
-        st.info("No cloud folders have been linked yet.")
-
-# ============================================================
-# 11. SCOPE & PRICING
-# ============================================================
-
-with tabs[10]:
-    render_scope_pricing()
 
 # ============================================================
 # FOOTER

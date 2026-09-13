@@ -5,7 +5,6 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import datetime, date
 import time
 
-
 # ============================================================
 # PAGE CONFIGURATION
 # ============================================================
@@ -28,10 +27,6 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 # ============================================================
 
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1-2HTr0mOkl_Tis-ehO4apu8kqw4KSKPte_nq_ngTm5E/edit?gid=0#gid=0"
-
-# ============================================================
-# HELPER FUNCTIONS
-# ============================================================
 
 # ============================================================
 # HELPER FUNCTIONS
@@ -75,7 +70,7 @@ def read_sheet(worksheet, columns=None):
                 st.cache_data.clear()
                 st.rerun()
         else:
-            st.error(#
+            st.error(
                 f"Could not load worksheet '{worksheet}'. "
                 f"Please make sure the tab exists in Google Sheets. "
                 f"Error: {e}"
@@ -147,12 +142,11 @@ def metric_card(label, value, delta=None):
 # ============================================================
 
 with st.sidebar:
-
     st.title("🏢 Thornbury")
     st.caption("Growth Command Centre")
     st.divider()
 
-   st.markdown("### Project Focus")
+    st.markdown("### Project Focus")
     st.success("🍽️ Restaurant Weekly Offers")
     st.info("🎭 Thornbury Theatre Events")
     st.success("📧 CRM & Repeat Business")
@@ -228,7 +222,7 @@ with tabs[0]:
     with col_wins:
         st.success(f"**🏆 Latest Weekly Update:**\n\n{latest_win_text}")
 
-  # --------------------------------------------------------
+    # --------------------------------------------------------
     # STREAM B: CLIENT ACTION ITEMS & QUESTIONS
     # --------------------------------------------------------
     action_cols = ["Timestamp", "Task / Question", "Status", "Client Response"]
@@ -360,7 +354,7 @@ with tabs[0]:
             else:
                 st.info("No action items recorded yet.")
 
-   # --------------------------------------------------------
+    # --------------------------------------------------------
     # CONSOLIDATED ROI SNAPSHOT
     # --------------------------------------------------------
     st.divider()
@@ -436,7 +430,7 @@ with tabs[0]:
 
     st.divider()
 
-  # --------------------------------------------------------
+    # --------------------------------------------------------
     # CURRENT PROJECT STATUS (Visible to both)
     # --------------------------------------------------------
     st.subheader("🚀 Current Project Status")
@@ -476,6 +470,7 @@ with tabs[0]:
         - 🔄 Google/Meta setup
         - ⬜ CRM automation
         """)
+
 # ============================================================
 # 2. DISCOVERY
 # ============================================================
@@ -588,7 +583,6 @@ with tabs[1]:
         )
 
         if submitted:
-
             row = {
                 "Timestamp": datetime.now().strftime(
                     "%Y-%m-%d %H:%M:%S"
@@ -613,7 +607,8 @@ with tabs[1]:
                 st.success(
                     "✅ Discovery responses saved."
                 )
-# --------------------------------------------------------
+
+    # --------------------------------------------------------
     # SUBMISSION HISTORY (CLIENT TRANSPARENCY)
     # --------------------------------------------------------
     st.divider()
@@ -634,6 +629,7 @@ with tabs[1]:
         )
     else:
         st.info("No discovery sessions have been recorded yet.")
+
 # ============================================================
 # 3. WEBSITE
 # ============================================================
@@ -735,6 +731,7 @@ HOME
 ├── Gallery
 └── Contact
 """)
+
 # ============================================================
 # 4. RESTAURANT WEEKLY OFFERS
 # ============================================================
@@ -768,6 +765,7 @@ with tabs[3]:
         st.dataframe(offers_df.iloc[::-1], use_container_width=True, hide_index=True)
     else:
         st.info("No active offers recorded yet.")
+
 # ============================================================
 # 5. THORNBURY THEATRE EVENTS
 # ============================================================
@@ -811,6 +809,7 @@ with tabs[4]:
         st.dataframe(events_df.iloc[::-1], use_container_width=True, hide_index=True)
     else:
         st.info("No upcoming events logged yet.")
+
 # ============================================================
 # 6. CONTENT STUDIO
 # ============================================================
@@ -962,6 +961,7 @@ with tabs[5]:
         )
     else:
         st.info("No content has been added yet.")
+
 # ============================================================
 # 7. CRM & LOYALTY
 # ============================================================
@@ -1054,7 +1054,8 @@ with tabs[6]:
         "Use the existing customer database where legally permitted "
         "and ensure marketing communications have appropriate consent."
     )
-# --------------------------------------------------------
+
+    # --------------------------------------------------------
     # CRM HISTORY (CLIENT TRANSPARENCY)
     # --------------------------------------------------------
     st.divider()
@@ -1069,9 +1070,6 @@ with tabs[6]:
         )
     else:
         st.info("No CRM data has been recorded yet.")
-# ============================================================
-# 8. ANALYTICS
-# ============================================================
 
 # ============================================================
 # 8. ANALYTICS
@@ -1080,88 +1078,77 @@ with tabs[6]:
 with tabs[7]:
     if view_mode == "Marketing Manager":
         st.header("📊 Marketing Performance Dashboard")
-        st.caption("Use this area for validated business data. ")
+        st.caption("Use this area for validated business data.")
         
-        # [ KEEP ALL YOUR EXISTING ANALYTICS CHARTS AND CODE HERE, JUST INDENTED ]
+        # --------------------------------------------------------
+        # RESTAURANT
+        # --------------------------------------------------------
+        st.subheader("🍽️ Restaurant KPIs")
         
-    else:
-        st.info("🔒 Analytics and granular performance data are restricted to the Marketing Team.")
+        restaurant_data = read_sheet("Restaurant_Data", ["Day", "Covers", "Target", "Revenue"])
 
-    # --------------------------------------------------------
-    # RESTAURANT
-    # --------------------------------------------------------
+        st.dataframe(
+            restaurant_data,
+            use_container_width=True,
+            hide_index=True
+        )
 
-    st.subheader("🍽️ Restaurant KPIs")
-    
-    restaurant_data = read_sheet("Restaurant_Data", ["Day", "Covers", "Target", "Revenue"])
+        if not restaurant_data.empty:
+            st.bar_chart(
+                restaurant_data.set_index("Day")[
+                    ["Covers", "Target"]
+                ]
+            )
 
-    st.dataframe(
-        restaurant_data,
-        use_container_width=True,
-        hide_index=True
-    )
+        st.divider()
 
-    st.bar_chart(
-        restaurant_data.set_index("Day")[
-            ["Covers", "Target"]
-        ]
-    )
+        # --------------------------------------------------------
+        # THEATRE
+        # --------------------------------------------------------
+        st.subheader("💼 Theatre KPIs")
 
-    st.divider()
+        theatre_data = pd.DataFrame({
+            "Metric": [
+                "Corporate Enquiries",
+                "Qualified Leads",
+                "Quotes",
+                "Bookings"
+            ],
+            "Current": [
+                18,
+                6,
+                4,
+                2
+            ]
+        })
 
-    # --------------------------------------------------------
-    # THEATRE
-    # --------------------------------------------------------
+        st.dataframe(
+            theatre_data,
+            use_container_width=True,
+            hide_index=True
+        )
 
-    st.subheader("💼 Theatre KPIs")
+        st.divider()
 
-    theatre_data = pd.DataFrame({
-        "Metric": [
-            "Corporate Enquiries",
-            "Qualified Leads",
-            "Quotes",
-            "Bookings"
-        ],
-        "Current": [
-            18,
-            6,
-            4,
-            2
-        ]
-    })
+        # --------------------------------------------------------
+        # MARKETING
+        # --------------------------------------------------------
+        st.subheader("📈 Marketing KPIs")
 
-    st.dataframe(
-        theatre_data,
-        use_container_width=True,
-        hide_index=True
-    )
+        m1, m2, m3, m4 = st.columns(4)
 
-    st.divider()
+        with m1:
+            metric_card("Website Visitors", "—")
+        with m2:
+            metric_card("Booking Conversion", "—")
+        with m3:
+            metric_card("Cost per Lead", "—")
+        with m4:
+            metric_card("ROAS", "—")
 
-    # --------------------------------------------------------
-    # MARKETING
-    # --------------------------------------------------------
-
-    st.subheader("📈 Marketing KPIs")
-
-    m1, m2, m3, m4 = st.columns(4)
-
-    with m1:
-        metric_card("Website Visitors", "—")
-
-    with m2:
-        metric_card("Booking Conversion", "—")
-
-    with m3:
-        metric_card("Cost per Lead", "—")
-
-    with m4:
-        metric_card("ROAS", "—")
-# ========================================================
-    # UTM LINK GENERATOR & REPOSITORY (Marketing Manager Only)
-    # ========================================================
-    if view_mode == "Marketing Manager":
-        
+        # ========================================================
+        # UTM LINK GENERATOR & REPOSITORY (Marketing Manager Only)
+        # ========================================================
         st.divider()
         st.subheader("🔗 UTM Tracking Link Generator & History")
         st.markdown("Create clean, trackable URLs and save them to prevent campaign duplication.")
@@ -1243,6 +1230,10 @@ with tabs[7]:
             )
         else:
             st.info("No tracking links have been generated yet.")
+
+    else:
+        st.info("🔒 Analytics and granular performance data are restricted to the Marketing Team.")
+
 # ============================================================
 # 9. 90-DAY ROADMAP
 # ============================================================
@@ -1332,16 +1323,6 @@ with tabs[8]:
                 st.success("✅ Roadmap progress saved successfully!")
 
 # ============================================================
-# FOOTER
-# ============================================================
-
-st.divider()
-
-st.caption(
-    "Thornbury Growth Command Centre • "
-    "Restaurant + Theatre + Corporate Growth"
-)
-# ============================================================
 # 10. ASSET REPOSITORY (DAM)
 # ============================================================
 
@@ -1385,12 +1366,14 @@ with tabs[9]:
     if uploaded_files:
         for file in uploaded_files:
             st.success(f"File ready for processing: {file.name}")
+
 # ============================================================
-# 9. SCOPE & PRICING
+# 11. SCOPE & PRICING
 # ============================================================
 
-with tabs[9]:
+with tabs[10]:
     render_scope_pricing()
+
 # ============================================================
 # FOOTER
 # ============================================================

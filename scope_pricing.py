@@ -11,7 +11,7 @@ def render_scope_pricing():
             st.download_button(
                 label="📄 Download Full Proposal (Word Doc)",
                 data=file,
-                file_name="marketing-plan_2.docx",
+                file_name="scope-pricing.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
     except FileNotFoundError:

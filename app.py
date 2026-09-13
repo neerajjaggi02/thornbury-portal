@@ -212,7 +212,8 @@ tabs = st.tabs([
     "🎬 Content Studio",
     "📧 CRM & Loyalty",
     "📊 Analytics",
-    "🗓️ 90-Day Roadmap"
+    "🗓️ 90-Day Roadmap",
+    "📑 Scope & Pricing"
 ])
 
 # ============================================================

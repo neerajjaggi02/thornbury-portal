@@ -75,7 +75,7 @@ def read_sheet(worksheet, columns=None):
                 st.cache_data.clear()
                 st.rerun()
         else:
-            st.error(
+            st.error(#
                 f"Could not load worksheet '{worksheet}'. "
                 f"Please make sure the tab exists in Google Sheets. "
                 f"Error: {e}"
@@ -1597,6 +1597,12 @@ st.caption(
     "Thornbury Growth Command Centre • "
     "Restaurant + Theatre + Corporate Growth"
 )
+# ============================================================
+# 10. SCOPE & PRICING
+# ============================================================
+
+with tabs[9]:
+    render_scope_pricing()
 # ============================================================
 # FOOTER
 # ============================================================

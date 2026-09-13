@@ -152,10 +152,9 @@ with st.sidebar:
     st.caption("Growth Command Centre")
     st.divider()
 
-    st.markdown("### Project Focus")
-    st.success("🍽️ Weekday Restaurant Growth")
-    st.info("💼 Corporate Theatre Sales")
-    st.warning("🌐 Website Conversion")
+   st.markdown("### Project Focus")
+    st.success("🍽️ Restaurant Weekly Offers")
+    st.info("🎭 Thornbury Theatre Events")
     st.success("📧 CRM & Repeat Business")
 
     st.divider()
@@ -167,9 +166,9 @@ with st.sidebar:
     # HIDDEN ADMIN ACCESS
     # --------------------------------------------------------
     with st.expander("⚙️ Settings"):
-        admin_password = st.text_input("Agency Access", type="password")
+        admin_password = st.text_input("Agency Access", type="password", key="admin_password_input")
 
-    if admin_password == "growth2026":  # Change to your preferred password
+    if admin_password == "growth2026":  
         view_mode = "Marketing Manager"
         st.success("🔓 Marketing Manager View Unlocked")
     else:
@@ -177,27 +176,11 @@ with st.sidebar:
 
     st.divider()
     
-    # Global Sync / Refresh Button for Real-Time Google Sheets Deletions
     if st.button("🔄 Sync with Google Sheets"):
         st.cache_data.clear()
         st.success("Cache cleared! Pulling latest data...")
         time.sleep(0.8)
         st.rerun()
-  
-# ============================================================
-# HEADER
-# ============================================================
-
-st.title("THORNBURY GROWTH COMMAND CENTRE")
-
-st.markdown(
-    """
-    **Digital marketing, website, restaurant growth, theatre sales,
-    content and KPI management in one place.**
-    """
-)
-
-st.divider()
 
 # ============================================================
 # TABS
@@ -207,12 +190,13 @@ tabs = st.tabs([
     "🏠 Dashboard",
     "📋 Discovery",
     "🌐 Website",
-    "🍽️ Restaurant Growth",
-    "💼 Corporate B2B",
+    "🍽️ Restaurant Weekly Offers",
+    "🎭 Thornbury Theatre Events",
     "🎬 Content Studio",
     "📧 CRM & Loyalty",
     "📊 Analytics",
     "🗓️ 90-Day Roadmap",
+    "📁 Asset Repository",
     "📑 Scope & Pricing"
 ])
 
@@ -752,327 +736,81 @@ HOME
 └── Contact
 """)
 # ============================================================
-# 4. RESTAURANT GROWTH
+# 4. RESTAURANT WEEKLY OFFERS
 # ============================================================
 
 with tabs[3]:
+    st.header("🍽️ Restaurant Weekly Offers")
+    st.markdown("Manage and track weekly promotions.")
 
-    st.header("🍽️ Restaurant Weekday Growth")
-    st.markdown("Build repeatable reasons for customers to visit Monday–Thursday.")
-
-    # Wrap all inputs in a form so they save together
-    with st.form("restaurant_growth_form"):
+    with st.form("weekly_offers_form"):
+        offer_day = st.selectbox("Day of Week", ["Monday", "Tuesday", "Wednesday", "Thursday", "Weekend"])
+        offer_name = st.text_input("Offer Name", placeholder="e.g., Tap Tuesday")
+        offer_description = st.text_area("Offer Details")
         
-        days = ["Monday", "Tuesday", "Wednesday", "Thursday"]
-        day_inputs = {}
-
-        # Generate the daily input cards
-        for day in days:
-            with st.expander(f"{day} Metrics", expanded=(day == "Tuesday")):
-                col1, col2, col3 = st.columns(3)
-
-                with col1:
-                    c = st.number_input(f"{day} covers", min_value=0, step=1, key=f"{day}_covers")
-                with col2:
-                    r = st.number_input(f"{day} revenue ($)", min_value=0, step=100, key=f"{day}_revenue")
-                with col3:
-                    t = st.number_input(f"{day} target covers", min_value=0, step=5, key=f"{day}_target")
-                
-                # Store inputs in a dictionary to process upon save
-                day_inputs[day] = {"Covers": c, "Revenue": r, "Target": t}
-                
-                if t > 0:
-                    achievement = min(c / t, 1)
-                    st.progress(achievement, text=f"{c}/{t} covers")
-
-        st.divider()
-
-        st.subheader("🔥 Super Tuesday Activation")
-
-        activation = st.selectbox(
-            "Current Tuesday activation",
-            ["Tap Tuesday", "Local Hospo Night", "Secret Menu", "Trivia Night", "Live Music", "Other"]
-        )
-
-        description = st.text_area(
-            "Tuesday offer / campaign description",
-            placeholder="Example: rotating taps + Tuesday-only food special."
-        )
-
-        # The Save Button
-        restaurant_submit = st.form_submit_button("💾 Save Restaurant Data")
-
-        if restaurant_submit:
-            # 1. Update the Monday-Thursday metrics in Restaurant_Data tab
-            rest_data = []
-            for day in days:
-                rest_data.append({
-                    "Day": day,
-                    "Covers": day_inputs[day]["Covers"],
-                    "Target": day_inputs[day]["Target"],
-                    "Revenue": day_inputs[day]["Revenue"]
-                })
-            
-            df_rest = pd.DataFrame(rest_data)
-            
-            # Note: This uses update_sheet to OVERWRITE the current week's data 
-            # so your Analytics charts stay clean.
-            update_success = update_sheet("Restaurant_Data", df_rest)
-
-            # 2. Append the Tuesday Activation record
-            activation_row = {
+        if st.form_submit_button("💾 Save Offer") and offer_name:
+            row = {
                 "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Activation": activation,
-                "Description": description
+                "Day": offer_day,
+                "Offer Name": offer_name,
+                "Description": offer_description
             }
-            
-            activation_success = append_to_sheet(
-                "Tuesday_Activation", 
-                activation_row, 
-                ["Timestamp", "Activation", "Description"]
-            )
+            if append_to_sheet("Restaurant_Offers", row, ["Timestamp", "Day", "Offer Name", "Description"]):
+                st.success("✅ Weekly offer saved.")
+                time.sleep(1)
+                st.rerun()
 
-            if update_success and activation_success:
-                st.success("✅ Restaurant metrics and Super Tuesday data saved successfully.")
-
-    # --------------------------------------------------------
-    # DISPLAY CURRENT METRICS OUTSIDE THE FORM
-    # --------------------------------------------------------
     st.divider()
+    st.subheader("🗄️ Active Offers Log")
     
-    st.info(
-        "Recommendation: test one strong Tuesday proposition for 4–6 weeks and compare "
-        "incremental covers, revenue, average spend and repeat visits."
-    )
-# --------------------------------------------------------
-    # TUESDAY ACTIVATION HISTORY (CLIENT TRANSPARENCY)
-    # --------------------------------------------------------
-    st.divider()
-    st.subheader("🗄️ Super Tuesday Activation History")
-    
-    tuesday_cols = ["Timestamp", "Activation", "Description"]
-    tuesday_df = read_sheet("Tuesday_Activation", tuesday_cols)
-    
-    if not tuesday_df.empty:
-        st.dataframe(
-            tuesday_df.iloc[::-1],
-            use_container_width=True,
-            hide_index=True
-        )
+    offers_df = read_sheet("Restaurant_Offers", ["Timestamp", "Day", "Offer Name", "Description"])
+    if not offers_df.empty:
+        st.dataframe(offers_df.iloc[::-1], use_container_width=True, hide_index=True)
     else:
-        st.info("No Tuesday campaigns have been recorded yet.")
+        st.info("No active offers recorded yet.")
 # ============================================================
-# 5. CORPORATE B2B
+# 5. THORNBURY THEATRE EVENTS
 # ============================================================
 
 with tabs[4]:
+    st.header("🎭 Thornbury Theatre Events")
+    st.markdown("Track upcoming shows and ticket links.")
 
-    st.header("💼 Corporate Theatre B2B")
+    event_columns = ["Timestamp", "Event Name", "Event Date", "Ticket Link", "Status", "Notes"]
 
-    st.markdown(
-        "Generate Monday–Thursday corporate and private-event demand."
-    )
-
-    # --------------------------------------------------------
-    # PIPELINE
-    # --------------------------------------------------------
-
-    st.subheader("Corporate Pipeline")
-
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-
-    pipeline_metrics = [
-        ("Prospects", "47"),
-        ("Contacted", "31"),
-        ("Replies", "9"),
-        ("Qualified", "6"),
-        ("Quotes", "4"),
-        ("Booked", "2")
-    ]
-
-    for col, (label, value) in zip(
-        [c1, c2, c3, c4, c5, c6],
-        pipeline_metrics
-    ):
-        with col:
-            metric_card(label, value)
-
-    st.divider()
-
-    # --------------------------------------------------------
-    # ADD LEAD
-    # --------------------------------------------------------
-
-    st.subheader("➕ Add Corporate Lead")
-
-    lead_columns = [
-        "Timestamp",
-        "Company",
-        "Contact",
-        "Job Title",
-        "LinkedIn",
-        "Email",
-        "Event Type",
-        "Guests",
-        "Budget",
-        "Status",
-        "Last Contact",
-        "Next Follow-up",
-        "Notes"
-    ]
-
-    with st.form("corporate_lead_form"):
-
+    with st.form("theatre_events_form"):
         col1, col2 = st.columns(2)
-
         with col1:
-
-            company = st.text_input("Company")
-
-            contact = st.text_input("Contact Person")
-
-            job_title = st.text_input("Job Title")
-
-            linkedin = st.text_input(
-                "LinkedIn Profile"
-            )
-
-            email = st.text_input("Email")
-
+            event_name = st.text_input("Event Name")
+            event_date = st.date_input("Event Date", value=date.today())
         with col2:
-
-            event_type = st.selectbox(
-                "Event Type",
-                [
-                    "Product Launch",
-                    "Conference",
-                    "Awards Night",
-                    "EOFY",
-                    "Christmas Party",
-                    "Team Event",
-                    "Networking",
-                    "Client Entertainment",
-                    "Brand Activation",
-                    "Private Event",
-                    "Other"
-                ]
-            )
-
-            guests = st.number_input(
-                "Estimated Guests",
-                min_value=0,
-                step=10
-            )
-
-            budget = st.number_input(
-                "Estimated Budget ($AUD)",
-                min_value=0,
-                step=500
-            )
-
-            status = st.selectbox(
-                "Pipeline Status",
-                [
-                    "Prospect",
-                    "Contacted",
-                    "Replied",
-                    "Qualified",
-                    "Quote Sent",
-                    "Negotiation",
-                    "Booked",
-                    "Lost"
-                ]
-            )
-
-        notes = st.text_area("Notes")
-
-        lead_submit = st.form_submit_button(
-            "Save Corporate Lead"
-        )
-
-        if lead_submit and company:
-
+            ticket_link = st.text_input("Ticketing URL")
+            event_status = st.selectbox("Status", ["Announced", "On Sale", "Sold Out", "Completed"])
+        
+        event_notes = st.text_area("Event Notes")
+        
+        if st.form_submit_button("💾 Save Event") and event_name:
             row = {
-                "Timestamp": datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
-                "Company": company,
-                "Contact": contact,
-                "Job Title": job_title,
-                "LinkedIn": linkedin,
-                "Email": email,
-                "Event Type": event_type,
-                "Guests": guests,
-                "Budget": budget,
-                "Status": status,
-                "Last Contact": "",
-                "Next Follow-up": "",
-                "Notes": notes
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Event Name": event_name,
+                "Event Date": str(event_date),
+                "Ticket Link": ticket_link,
+                "Status": event_status,
+                "Notes": event_notes
             }
-
-            if append_to_sheet(
-                "Corporate_Leads",
-                row,
-                lead_columns
-            ):
-                st.success(
-                    "✅ Corporate lead saved."
-                )
+            if append_to_sheet("Theatre_Events", row, event_columns):
+                st.success("✅ Theatre event logged.")
+                time.sleep(1)
+                st.rerun()
 
     st.divider()
-
-    # --------------------------------------------------------
-    # LINKEDIN OUTBOUND
-    # --------------------------------------------------------
-
-    st.subheader("🔗 Organic LinkedIn Outreach")
-
-    l1, l2, l3, l4, l5 = st.columns(5)
-
-    with l1:
-        metric_card("Prospects Researched", "18")
-
-    with l2:
-        metric_card("Connections Sent", "15")
-
-    with l3:
-        metric_card("Accepted", "8")
-
-    with l4:
-        metric_card("Replies", "4")
-
-    with l5:
-        metric_card("Qualified", "2")
-
-    st.markdown("""
-    **Target profiles**
-
-    - HR Managers
-    - People & Culture
-    - Executive Assistants
-    - Office Managers
-    - Marketing Managers
-    - Event Managers
-    - Event Agencies
-    - Conference Organisers
-    """)
-# --------------------------------------------------------
-    # CORPORATE LEADS HISTORY (CLIENT TRANSPARENCY)
-    # --------------------------------------------------------
-    st.divider()
-    st.subheader("🗄️ Corporate Leads History")
+    st.subheader("🗄️ Event Schedule")
     
-    leads_df = read_sheet("Corporate_Leads", lead_columns)
-    
-    if not leads_df.empty:
-        # Reverse the dataframe to show newest first
-        st.dataframe(
-            leads_df.iloc[::-1],
-            use_container_width=True,
-            hide_index=True
-        )
+    events_df = read_sheet("Theatre_Events", event_columns)
+    if not events_df.empty:
+        st.dataframe(events_df.iloc[::-1], use_container_width=True, hide_index=True)
     else:
-        st.info("No corporate leads have been recorded yet.")
+        st.info("No upcoming events logged yet.")
 # ============================================================
 # 6. CONTENT STUDIO
 # ============================================================
@@ -1335,14 +1073,19 @@ with tabs[6]:
 # 8. ANALYTICS
 # ============================================================
 
+# ============================================================
+# 8. ANALYTICS
+# ============================================================
+
 with tabs[7]:
-
-    st.header("📊 Marketing Performance Dashboard")
-
-    st.caption(
-        "Use this area for validated business data. "
-        "Demo values below should be replaced with connected data."
-    )
+    if view_mode == "Marketing Manager":
+        st.header("📊 Marketing Performance Dashboard")
+        st.caption("Use this area for validated business data. ")
+        
+        # [ KEEP ALL YOUR EXISTING ANALYTICS CHARTS AND CODE HERE, JUST INDENTED ]
+        
+    else:
+        st.info("🔒 Analytics and granular performance data are restricted to the Marketing Team.")
 
     # --------------------------------------------------------
     # RESTAURANT
@@ -1599,7 +1342,51 @@ st.caption(
     "Restaurant + Theatre + Corporate Growth"
 )
 # ============================================================
-# 10. SCOPE & PRICING
+# 10. ASSET REPOSITORY (DAM)
+# ============================================================
+
+with tabs[9]:
+    st.header("📁 Digital Asset Management")
+    st.markdown("Upload content, brand assets, and share centralized Google Drive / Dropbox links.")
+
+    st.subheader("☁️ Primary Cloud Storage Links")
+    drive_df = read_sheet("Asset_Links", ["Timestamp", "Folder Name", "URL"])
+    
+    if view_mode == "Marketing Manager":
+        with st.form("drive_link_form"):
+            c1, c2 = st.columns([1, 2])
+            with c1:
+                folder_name = st.text_input("Folder Name", placeholder="e.g., Logos & Fonts")
+            with c2:
+                folder_url = st.text_input("Shared Link URL")
+            
+            if st.form_submit_button("🔗 Save Folder Link") and folder_name and folder_url:
+                append_to_sheet(
+                    "Asset_Links", 
+                    {"Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Folder Name": folder_name, "URL": folder_url}, 
+                    ["Timestamp", "Folder Name", "URL"]
+                )
+                st.success("✅ Link saved!")
+                time.sleep(1)
+                st.rerun()
+
+    if not drive_df.empty:
+        for idx, row in drive_df.iterrows():
+            st.markdown(f"🔗 **{row['Folder Name']}**: [{row['URL']}]({row['URL']})")
+    else:
+        st.info("No cloud folders have been linked yet.")
+
+    st.divider()
+
+    st.subheader("📤 Quick File Upload")
+    st.caption("Use this to temporarily send files to the agency.")
+    
+    uploaded_files = st.file_uploader("Upload images or documents", accept_multiple_files=True)
+    if uploaded_files:
+        for file in uploaded_files:
+            st.success(f"File ready for processing: {file.name}")
+# ============================================================
+# 9. SCOPE & PRICING
 # ============================================================
 
 with tabs[9]:

@@ -1,3 +1,4 @@
+from scope_pricing import render_scope_pricing
 import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
@@ -14,6 +15,15 @@ st.set_page_config(
     page_icon="🏢",
     initial_sidebar_state="expanded"
 )
+
+# ============================================================
+# LOAD CUSTOM CSS
+# ============================================================
+try:
+    with open("style.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
 
 # ============================================================
 # GOOGLE SHEETS CONNECTION
@@ -142,7 +152,6 @@ with st.sidebar:
     st.caption("Growth Command Centre")
     st.divider()
 
-    # Clean Vertical Menu on the Left
     st.markdown("### 🧭 Navigation")
     selected_page = st.radio(
         "Select Section:",
@@ -155,7 +164,9 @@ with st.sidebar:
             "🎬 Content Studio",
             "📧 CRM & Loyalty",
             "📊 Analytics",
-            "🗓️ 90-Day Roadmap"
+            "🗓️ 90-Day Roadmap",
+            "📁 Asset Repository",
+            "📑 Scope & Pricing"
         ],
         label_visibility="collapsed"
     )
@@ -172,9 +183,7 @@ with st.sidebar:
     
     st.divider()
 
-    # --------------------------------------------------------
-    # HIDDEN ADMIN ACCESS
-    # --------------------------------------------------------
+    # Hidden Admin Access
     with st.expander("⚙️ Settings"):
         admin_password = st.text_input("Agency Access", type="password")
 
@@ -186,7 +195,6 @@ with st.sidebar:
 
     st.divider()
     
-    # Global Sync / Refresh Button for Real-Time Google Sheets Deletions
     if st.button("🔄 Sync with Google Sheets"):
         st.cache_data.clear()
         st.success("Cache cleared! Pulling latest data...")
@@ -198,14 +206,12 @@ with st.sidebar:
 # ============================================================
 
 st.title("THORNBURY GROWTH COMMAND CENTRE")
-
 st.markdown(
     """
     **Digital marketing, website, restaurant growth, theatre sales,
     content and KPI management in one place.**
     """
 )
-
 st.divider()
 
 # ============================================================
@@ -304,7 +310,7 @@ if selected_page == "🏠 Dashboard":
                             }
                             if append_to_sheet("Weekly_Wins_Data", row, wins_cols):
                                 st.success("✅ Weekly update published!")
-                                time.sleep(1)
+                                time.sleep(1.5)
                                 st.rerun()
 
         with m_col2:
@@ -325,7 +331,7 @@ if selected_page == "🏠 Dashboard":
                             }
                             if append_to_sheet("Client_Action_Items", new_row, action_cols):
                                 st.success("✅ Question sent to client!")
-                                time.sleep(1)
+                                time.sleep(1.5)
                                 st.rerun()
 
         st.markdown("#### 🔄 Manage & Reopen Past Questions")
@@ -516,30 +522,29 @@ elif selected_page == "📋 Discovery":
         st.info("No discovery sessions have been recorded yet.")
 
 # ============================================================
-# 3. WEBSITE
+# 3. WEBSITE (Restricted to Marketing Manager View)
 # ============================================================
 
 elif selected_page == "🌐 Website":
 
-    st.header("🌐 Website Revamp Tracker")
-    st.markdown("Monitor and manage the website transformation stages from discovery to launch.")
-
-    web_columns = ["Task", "Completed"]
-    web_df = read_sheet("Website_Data", web_columns)
-    
-    saved_web_status = {}
-    if not web_df.empty:
-        saved_web_status = dict(zip(web_df['Task'], web_df['Completed'].astype(str) == 'True'))
-
-    website_tasks = [
-        "Discovery & Requirements", "Website UX Audit", "Competitor Research",
-        "Information Architecture", "Restaurant Wireframes", "Corporate Events Landing Page",
-        "Mobile-First Design", "SEO Structure", "OpenTable Integration",
-        "Analytics & Conversion Tracking", "Final QA", "Website Launch"
-    ]
-
     if view_mode == "Marketing Manager":
-        st.info("🔒 **Admin Mode:** Update checklist states below and click save.")
+        st.header("🌐 Website Revamp Tracker")
+        st.markdown("Monitor and manage the website transformation stages from discovery to launch.")
+
+        web_columns = ["Task", "Completed"]
+        web_df = read_sheet("Website_Data", web_columns)
+        
+        saved_web_status = {}
+        if not web_df.empty:
+            saved_web_status = dict(zip(web_df['Task'], web_df['Completed'].astype(str) == 'True'))
+
+        website_tasks = [
+            "Discovery & Requirements", "Website UX Audit", "Competitor Research",
+            "Information Architecture", "Restaurant Wireframes", "Corporate Events Landing Page",
+            "Mobile-First Design", "SEO Structure", "OpenTable Integration",
+            "Analytics & Conversion Tracking", "Final QA", "Website Launch"
+        ]
+
         with st.form("website_form"):
             completed = 0
             current_web_states = {}
@@ -562,21 +567,14 @@ elif selected_page == "🌐 Website":
                     time.sleep(1)
                     st.rerun()
 
-    elif view_mode == "Client View":
-        st.markdown("Here is the current completion status of your website overhaul:")
-        for task in website_tasks:
-            is_done = saved_web_status.get(task, False)
-            if is_done:
-                st.markdown(f"✅ **{task}** — Completed")
-            else:
-                st.markdown(f"⏳ **{task}** — In Progress / Pending")
+        st.divider()
+        st.subheader("Recommended Theatre Website Structure")
+        st.code("HOME\n├── What's On\n├── Corporate Events\n├── Private Events\n├── Venue Hire\n├── Food & Dining\n├── Gallery\n├── About\n└── Contact")
 
-    st.divider()
-    st.subheader("Recommended Theatre Website Structure")
-    st.code("HOME\n├── What's On\n├── Corporate Events\n├── Private Events\n├── Venue Hire\n├── Food & Dining\n├── Gallery\n├── About\n└── Contact")
-
-    st.subheader("Recommended Taphouse Website Structure")
-    st.code("HOME\n├── Menu\n├── Book a Table\n├── What's On\n├── Group Bookings\n├── Corporate Dining\n├── Dinner + Show\n├── Gallery\n└── Contact")
+        st.subheader("Recommended Taphouse Website Structure")
+        st.code("HOME\n├── Menu\n├── Book a Table\n├── What's On\n├── Group Bookings\n├── Corporate Dining\n├── Dinner + Show\n├── Gallery\n└── Contact")
+    else:
+        st.info("🔒 Website revamp management is restricted to the Marketing Team. You can view the live progress card on the Executive Dashboard.")
 
 # ============================================================
 # 4. RESTAURANT GROWTH
@@ -1024,6 +1022,56 @@ elif selected_page == "🗓️ 90-Day Roadmap":
             new_roadmap_data = [{"Task": task_name, "Completed": is_done} for task_name, is_done in current_states.items()]
             if update_sheet("Roadmap_Data", pd.DataFrame(new_roadmap_data)):
                 st.success("✅ Roadmap progress saved successfully!")
+
+# ============================================================
+# 10. ASSET REPOSITORY (DAM)
+# ============================================================
+
+elif selected_page == "📁 Asset Repository":
+
+    st.header("📁 Digital Asset Management")
+    st.markdown("Share and access centralized Google Drive or Dropbox links.")
+
+    st.subheader("☁️ Add a Cloud Storage Link")
+    
+    with st.form("drive_link_form"):
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            folder_name = st.text_input("Folder Name", placeholder="e.g., Raw Photos, Logos")
+        with c2:
+            folder_url = st.text_input("Shared Link URL")
+        
+        if st.form_submit_button("🔗 Save Folder Link") and folder_name and folder_url:
+            append_to_sheet(
+                "Asset_Links", 
+                {
+                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+                    "Folder Name": folder_name, 
+                    "URL": folder_url
+                }, 
+                ["Timestamp", "Folder Name", "URL"]
+            )
+            st.success("✅ Link saved successfully!")
+            time.sleep(1)
+            st.rerun()
+
+    st.divider()
+
+    st.subheader("🗄️ Saved Asset Folders")
+    drive_df = read_sheet("Asset_Links", ["Timestamp", "Folder Name", "URL"])
+    
+    if not drive_df.empty:
+        for idx, row in drive_df.iloc[::-1].iterrows():
+            st.markdown(f"🔗 **{row['Folder Name']}**: [{row['URL']}]({row['URL']})")
+    else:
+        st.info("No cloud folders have been linked yet.")
+
+# ============================================================
+# 11. SCOPE & PRICING
+# ============================================================
+
+elif selected_page == "📑 Scope & Pricing":
+    render_scope_pricing()
 
 # ============================================================
 # FOOTER

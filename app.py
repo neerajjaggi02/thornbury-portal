@@ -1328,44 +1328,45 @@ with tabs[8]:
 
 with tabs[9]:
     st.header("📁 Digital Asset Management")
-    st.markdown("Upload content, brand assets, and share centralized Google Drive / Dropbox links.")
+    st.markdown("Share and access centralized Google Drive or Dropbox links.")
 
-    st.subheader("☁️ Primary Cloud Storage Links")
-    drive_df = read_sheet("Asset_Links", ["Timestamp", "Folder Name", "URL"])
+    st.subheader("☁️ Add a Cloud Storage Link")
     
-    if view_mode == "Marketing Manager":
-        with st.form("drive_link_form"):
-            c1, c2 = st.columns([1, 2])
-            with c1:
-                folder_name = st.text_input("Folder Name", placeholder="e.g., Logos & Fonts")
-            with c2:
-                folder_url = st.text_input("Shared Link URL")
-            
-            if st.form_submit_button("🔗 Save Folder Link") and folder_name and folder_url:
-                append_to_sheet(
-                    "Asset_Links", 
-                    {"Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Folder Name": folder_name, "URL": folder_url}, 
-                    ["Timestamp", "Folder Name", "URL"]
-                )
-                st.success("✅ Link saved!")
-                time.sleep(1)
-                st.rerun()
-
-    if not drive_df.empty:
-        for idx, row in drive_df.iterrows():
-            st.markdown(f"🔗 **{row['Folder Name']}**: [{row['URL']}]({row['URL']})")
-    else:
-        st.info("No cloud folders have been linked yet.")
+    # 1. ADD LINK FORM (Now visible to Client and Manager)
+    with st.form("drive_link_form"):
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            folder_name = st.text_input("Folder Name", placeholder="e.g., Raw Photos, Logos")
+        with c2:
+            folder_url = st.text_input("Shared Link URL")
+        
+        if st.form_submit_button("🔗 Save Folder Link") and folder_name and folder_url:
+            append_to_sheet(
+                "Asset_Links", 
+                {
+                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+                    "Folder Name": folder_name, 
+                    "URL": folder_url
+                }, 
+                ["Timestamp", "Folder Name", "URL"]
+            )
+            st.success("✅ Link saved successfully!")
+            import time
+            time.sleep(1)
+            st.rerun()
 
     st.divider()
 
-    st.subheader("📤 Quick File Upload")
-    st.caption("Use this to temporarily send files to the agency.")
+    # 2. VIEW SAVED LINKS (Visible to Everyone)
+    st.subheader("🗄️ Saved Asset Folders")
+    drive_df = read_sheet("Asset_Links", ["Timestamp", "Folder Name", "URL"])
     
-    uploaded_files = st.file_uploader("Upload images or documents", accept_multiple_files=True)
-    if uploaded_files:
-        for file in uploaded_files:
-            st.success(f"File ready for processing: {file.name}")
+    if not drive_df.empty:
+        # Show newest links at the top
+        for idx, row in drive_df.iloc[::-1].iterrows():
+            st.markdown(f"🔗 **{row['Folder Name']}**: [{row['URL']}]({row['URL']})")
+    else:
+        st.info("No cloud folders have been linked yet.")
 
 # ============================================================
 # 11. SCOPE & PRICING

@@ -1,4 +1,3 @@
-from scope_pricing import render_scope_pricing
 import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
@@ -15,15 +14,6 @@ st.set_page_config(
     page_icon="🏢",
     initial_sidebar_state="expanded"
 )
-
-# ============================================================
-# LOAD CUSTOM CSS
-# ============================================================
-try:
-    with open("style.css") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-except FileNotFoundError:
-    pass
 
 # ============================================================
 # GOOGLE SHEETS CONNECTION
@@ -144,7 +134,7 @@ def metric_card(label, value, delta=None):
     )
 
 # ============================================================
-# SIDEBAR
+# SIDEBAR & CLEAN NAVIGATION MENU
 # ============================================================
 
 with st.sidebar:
@@ -152,6 +142,25 @@ with st.sidebar:
     st.caption("Growth Command Centre")
     st.divider()
 
+    # Clean Vertical Menu on the Left
+    st.markdown("### 🧭 Navigation")
+    selected_page = st.radio(
+        "Select Section:",
+        [
+            "🏠 Dashboard",
+            "📋 Discovery",
+            "🌐 Website",
+            "🍽️ Restaurant Growth",
+            "💼 Corporate B2B",
+            "🎬 Content Studio",
+            "📧 CRM & Loyalty",
+            "📊 Analytics",
+            "🗓️ 90-Day Roadmap"
+        ],
+        label_visibility="collapsed"
+    )
+
+    st.divider()
     st.markdown("### Project Focus")
     st.success("🍽️ Weekday Restaurant Growth")
     st.info("💼 Corporate Theatre Sales")
@@ -200,39 +209,16 @@ st.markdown(
 st.divider()
 
 # ============================================================
-# TABS
-# ============================================================
-
-tabs = st.tabs([
-    "🏠 Dashboard",
-    "📋 Discovery",
-    "🌐 Website",
-    "🍽️ Restaurant Growth",
-    "💼 Corporate B2B",
-    "🎬 Content Studio",
-    "📧 CRM & Loyalty",
-    "📊 Analytics",
-    "🗓️ 90-Day Roadmap"
-])
-
-# ============================================================
 # 1. DASHBOARD
 # ============================================================
 
-with tabs[0]:
+if selected_page == "🏠 Dashboard":
 
     st.header("🏠 Executive Dashboard")
 
-    # --------------------------------------------------------
-    # WEEKLY WINS & ACTION BOARD (SEPARATE STREAMS)
-    # --------------------------------------------------------
     st.subheader("📣 Weekly Status & Action Items")
-
     col_wins, col_needs = st.columns(2)
 
-    # --------------------------------------------------------
-    # STREAM A: WEEKLY STATUS UPDATES (Read-Only for Client)
-    # --------------------------------------------------------
     wins_cols = ["Timestamp", "Weekly Update"]
     wins_df = read_sheet("Weekly_Wins_Data", wins_cols)
     
@@ -243,13 +229,9 @@ with tabs[0]:
     with col_wins:
         st.success(f"**🏆 Latest Weekly Update:**\n\n{latest_win_text}")
 
-    # --------------------------------------------------------
-    # STREAM B: CLIENT ACTION ITEMS & QUESTIONS
-    # --------------------------------------------------------
     action_cols = ["Timestamp", "Task / Question", "Status", "Client Response"]
     action_df = read_sheet("Client_Action_Items", action_cols)
 
-    # Force string types to prevent Pandas dtype errors when updating cells
     if not action_df.empty:
         for col in action_df.columns:
             action_df[col] = action_df[col].astype(str)
@@ -269,7 +251,6 @@ with tabs[0]:
                         if row['Client Response'] and row['Client Response'] != "nan" and row['Client Response'] != "":
                             st.caption(f"Your last reply: {row['Client Response']}")
                         
-                        # Client Reply Form
                         with st.form(key=f"reply_form_{idx}"):
                             client_reply = st.text_input("Type your response:", key=f"input_{idx}")
                             
@@ -301,16 +282,12 @@ with tabs[0]:
         if not has_open:
             st.info("🎉 All caught up! No pending questions right now.")
 
-    # ========================================================
-    # MARKETING MANAGER ADMIN CONTROLS (With Status Reversal)
-    # ========================================================
     if view_mode == "Marketing Manager":
         st.divider()
         st.markdown("### ⚙️ Manager Update Controls")
         
         m_col1, m_col2 = st.columns(2)
         
-        # 1. Post a Weekly Status Update
         with m_col1:
             with st.expander("📝 Post New Weekly Status", expanded=False):
                 with st.form("weekly_status_form"):
@@ -330,7 +307,6 @@ with tabs[0]:
                                 time.sleep(1)
                                 st.rerun()
 
-        # 2. Ask a New Question / Create Action Item
         with m_col2:
             with st.expander("❓ Ask a New Question to Client", expanded=False):
                 with st.form("new_action_form"):
@@ -352,7 +328,6 @@ with tabs[0]:
                                 time.sleep(1)
                                 st.rerun()
 
-        # 3. Manage & Reopen Resolved Tasks (Reverse Function)
         st.markdown("#### 🔄 Manage & Reopen Past Questions")
         with st.expander("View Resolved / History Log & Reopen Tasks", expanded=False):
             if not action_df.empty:
@@ -375,15 +350,11 @@ with tabs[0]:
             else:
                 st.info("No action items recorded yet.")
 
-    # --------------------------------------------------------
-    # CONSOLIDATED ROI SNAPSHOT
-    # --------------------------------------------------------
     st.divider()
     
     roi_cols = ["Timestamp", "Ad Spend", "Tracked Leads", "Estimated Revenue"]
     roi_df = read_sheet("ROI_Data", roi_cols)
 
-    # Default values if the sheet is empty
     current_spend = 0
     current_leads = 0
     current_revenue = 0
@@ -404,12 +375,7 @@ with tabs[0]:
     with rc3:
         metric_card("Estimated Revenue Generated", f"${current_revenue:,}")
 
-    # ========================================================
-    # MARKETING MANAGER SPECIFIC VIEW
-    # ========================================================
     if view_mode == "Marketing Manager":
-        
-        # Hidden form to update the big ROI numbers
         with st.expander("⚙️ Update ROI Numbers", expanded=False):
             with st.form("roi_update_form"):
                 col1, col2, col3 = st.columns(3)
@@ -435,8 +401,6 @@ with tabs[0]:
                         st.rerun()
 
         st.divider()
-        
-        # Granular metrics are now hidden from the client, visible only to the manager
         st.subheader("📈 Granular Performance Indicators")
 
         c1, c2, c3, c4 = st.columns(4)
@@ -450,13 +414,8 @@ with tabs[0]:
             metric_card("Corporate Bookings", "3", "+1")
 
     st.divider()
-
-    # --------------------------------------------------------
-    # CURRENT PROJECT STATUS (Visible to both)
-    # --------------------------------------------------------
     st.subheader("🚀 Current Project Status")
 
-    # Fetch live website progress for the dashboard card
     web_df_dash = read_sheet("Website_Data", ["Task", "Completed"])
     total_web_tasks = 12
     completed_web_count = 0
@@ -474,16 +433,11 @@ with tabs[0]:
             web_progress_val, 
             text=f"{completed_web_count}/{total_web_tasks} completed — {web_progress_val:.0%}"
         )
-        st.markdown(
-            "Track the live transformation from discovery and UX audits through to final QA and launch."
-        )
+        st.markdown("Track the live transformation from discovery and UX audits through to final QA and launch.")
 
     with p2:
         st.markdown("### Marketing Setup")
-        st.progress(
-            0.55,
-            text="55% — Acquisition setup"
-        )
+        st.progress(0.55, text="55% — Acquisition setup")
         st.markdown("""
         - ✅ Content strategy
         - ✅ Weekday campaign concept
@@ -496,119 +450,47 @@ with tabs[0]:
 # 2. DISCOVERY
 # ============================================================
 
-with tabs[1]:
+elif selected_page == "📋 Discovery":
 
     st.header("📋 Client Discovery Questionnaire")
-
-    st.markdown(
-        "Complete this with the business owner. "
-        "Marketing research should be completed separately by you."
-    )
+    st.markdown("Complete this with the business owner. Marketing research should be completed separately by you.")
 
     discovery_columns = [
-        "Timestamp",
-        "Taphouse 3 Words",
-        "Theatre 3 Words",
-        "Target Audience",
-        "Cloud Kitchen Items",
-        "A/V Tech",
-        "Assets Link",
-        "Monthly Revenue Target",
-        "Weekday Cover Target",
-        "Corporate Priority",
-        "Notes"
+        "Timestamp", "Taphouse 3 Words", "Theatre 3 Words", "Target Audience",
+        "Cloud Kitchen Items", "A/V Tech", "Assets Link", "Monthly Revenue Target",
+        "Weekday Cover Target", "Corporate Priority", "Notes"
     ]
 
     with st.form("discovery_form"):
-
         st.subheader("Brand Identity")
-
-        taphouse_words = st.text_input(
-            "What 3 words define Thornbury Taphouse?"
-        )
-
-        theatre_words = st.text_input(
-            "What 3 words define Thornbury Theatre?"
-        )
+        taphouse_words = st.text_input("What 3 words define Thornbury Taphouse?")
+        theatre_words = st.text_input("What 3 words define Thornbury Theatre?")
 
         st.subheader("Restaurant Growth")
-
         target_audience = st.multiselect(
             "Primary target for Monday–Wednesday dinners?",
-            [
-                "Locals / Neighbours",
-                "Office Workers",
-                "Students",
-                "Couples",
-                "Families",
-                "Groups",
-                "Hospo / Industry Staff"
-            ]
+            ["Locals / Neighbours", "Office Workers", "Students", "Couples", "Families", "Groups", "Hospo / Industry Staff"]
         )
-
-        weekday_target = st.number_input(
-            "Ideal average weekday covers",
-            min_value=0,
-            step=5
-        )
-
-        monthly_target = st.number_input(
-            "Desired monthly revenue target ($AUD)",
-            min_value=0,
-            step=1000
-        )
+        weekday_target = st.number_input("Ideal average weekday covers", min_value=0, step=5)
+        monthly_target = st.number_input("Desired monthly revenue target ($AUD)", min_value=0, step=1000)
 
         st.subheader("Theatre / Corporate")
-
         corporate_priority = st.multiselect(
             "Which corporate events are priorities?",
-            [
-                "Product Launch",
-                "Conference",
-                "Awards Night",
-                "EOFY Event",
-                "Christmas Party",
-                "Team Event",
-                "Networking",
-                "Client Entertainment",
-                "Brand Activation",
-                "Private Performance"
-            ]
+            ["Product Launch", "Conference", "Awards Night", "EOFY Event", "Christmas Party", "Team Event", "Networking", "Client Entertainment", "Brand Activation", "Private Performance"]
         )
-
-        av_tech = st.radio(
-            "A/V technician available?",
-            [
-                "Yes — in-house",
-                "Yes — on request",
-                "No"
-            ]
-        )
+        av_tech = st.radio("A/V technician available?", ["Yes — in-house", "Yes — on request", "No"])
 
         st.subheader("Cloud Kitchen")
+        kitchen_items = st.text_area("Potential high-margin cloud kitchen / takeaway items")
+        assets_link = st.text_input("Link to high-resolution photos, logos and videos")
+        notes = st.text_area("Additional notes")
 
-        kitchen_items = st.text_area(
-            "Potential high-margin cloud kitchen / takeaway items"
-        )
-
-        assets_link = st.text_input(
-            "Link to high-resolution photos, logos and videos"
-        )
-
-        notes = st.text_area(
-            "Additional notes"
-        )
-
-        submitted = st.form_submit_button(
-            "💾 Save Discovery"
-        )
+        submitted = st.form_submit_button("💾 Save Discovery")
 
         if submitted:
-
             row = {
-                "Timestamp": datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "Taphouse 3 Words": taphouse_words,
                 "Theatre 3 Words": theatre_words,
                 "Target Audience": ", ".join(target_audience),
@@ -621,33 +503,15 @@ with tabs[1]:
                 "Notes": notes
             }
 
-            if append_to_sheet(
-                "Discovery",
-                row,
-                discovery_columns
-            ):
-                st.success(
-                    "✅ Discovery responses saved."
-                )
-# --------------------------------------------------------
-    # SUBMISSION HISTORY (CLIENT TRANSPARENCY)
-    # --------------------------------------------------------
+            if append_to_sheet("Discovery", row, discovery_columns):
+                st.success("✅ Discovery responses saved.")
+
     st.divider()
     st.subheader("🗄️ Discovery History")
 
-    # 1. Fetch the data
     discovery_df = read_sheet("Discovery", discovery_columns)
-
     if not discovery_df.empty:
-        # 2. Reverse the data so newest is at the top
-        discovery_reversed = discovery_df.iloc[::-1]
-
-        # 3. Display it as a clean, interactive table
-        st.dataframe(
-            discovery_reversed,
-            use_container_width=True,
-            hide_index=True
-        )
+        st.dataframe(discovery_df.iloc[::-1], use_container_width=True, hide_index=True)
     else:
         st.info("No discovery sessions have been recorded yet.")
 
@@ -655,7 +519,7 @@ with tabs[1]:
 # 3. WEBSITE
 # ============================================================
 
-with tabs[2]:
+elif selected_page == "🌐 Website":
 
     st.header("🌐 Website Revamp Tracker")
     st.markdown("Monitor and manage the website transformation stages from discovery to launch.")
@@ -668,26 +532,14 @@ with tabs[2]:
         saved_web_status = dict(zip(web_df['Task'], web_df['Completed'].astype(str) == 'True'))
 
     website_tasks = [
-        "Discovery & Requirements",
-        "Website UX Audit",
-        "Competitor Research",
-        "Information Architecture",
-        "Restaurant Wireframes",
-        "Corporate Events Landing Page",
-        "Mobile-First Design",
-        "SEO Structure",
-        "OpenTable Integration",
-        "Analytics & Conversion Tracking",
-        "Final QA",
-        "Website Launch"
+        "Discovery & Requirements", "Website UX Audit", "Competitor Research",
+        "Information Architecture", "Restaurant Wireframes", "Corporate Events Landing Page",
+        "Mobile-First Design", "SEO Structure", "OpenTable Integration",
+        "Analytics & Conversion Tracking", "Final QA", "Website Launch"
     ]
 
-    # ========================================================
-    # MARKETING MANAGER VIEW (Interactive Checklist Form)
-    # ========================================================
     if view_mode == "Marketing Manager":
         st.info("🔒 **Admin Mode:** Update checklist states below and click save.")
-        
         with st.form("website_form"):
             completed = 0
             current_web_states = {}
@@ -696,7 +548,6 @@ with tabs[2]:
                 default_val = saved_web_status.get(task, False)
                 value = st.checkbox(task, value=default_val, key=f"website_{task}")
                 current_web_states[task] = value
-                
                 if value:
                     completed += 1
 
@@ -704,7 +555,6 @@ with tabs[2]:
             st.progress(progress, text=f"{completed}/{len(website_tasks)} completed")
             
             web_submit = st.form_submit_button("💾 Save Website Progress")
-            
             if web_submit:
                 new_web_data = [{"Task": k, "Completed": v} for k, v in current_web_states.items()]
                 if update_sheet("Website_Data", pd.DataFrame(new_web_data)):
@@ -712,12 +562,8 @@ with tabs[2]:
                     time.sleep(1)
                     st.rerun()
 
-    # ========================================================
-    # CLIENT VIEW (Read-Only Status Overview)
-    # ========================================================
     elif view_mode == "Client View":
         st.markdown("Here is the current completion status of your website overhaul:")
-        
         for task in website_tasks:
             is_done = saved_web_status.get(task, False)
             if is_done:
@@ -726,53 +572,28 @@ with tabs[2]:
                 st.markdown(f"⏳ **{task}** — In Progress / Pending")
 
     st.divider()
-
     st.subheader("Recommended Theatre Website Structure")
-    st.code("""
-HOME
-├── What's On
-├── Corporate Events
-├── Private Events
-├── Venue Hire
-├── Food & Dining
-├── Gallery
-├── About
-└── Contact
-""")
+    st.code("HOME\n├── What's On\n├── Corporate Events\n├── Private Events\n├── Venue Hire\n├── Food & Dining\n├── Gallery\n├── About\n└── Contact")
 
     st.subheader("Recommended Taphouse Website Structure")
-    st.code("""
-HOME
-├── Menu
-├── Book a Table
-├── What's On
-├── Group Bookings
-├── Corporate Dining
-├── Dinner + Show
-├── Gallery
-└── Contact
-""")
+    st.code("HOME\n├── Menu\n├── Book a Table\n├── What's On\n├── Group Bookings\n├── Corporate Dining\n├── Dinner + Show\n├── Gallery\n└── Contact")
 
 # ============================================================
 # 4. RESTAURANT GROWTH
 # ============================================================
 
-with tabs[3]:
+elif selected_page == "🍽️ Restaurant Growth":
 
     st.header("🍽️ Restaurant Weekday Growth")
     st.markdown("Build repeatable reasons for customers to visit Monday–Thursday.")
 
-    # Wrap all inputs in a form so they save together
     with st.form("restaurant_growth_form"):
-        
         days = ["Monday", "Tuesday", "Wednesday", "Thursday"]
         day_inputs = {}
 
-        # Generate the daily input cards
         for day in days:
             with st.expander(f"{day} Metrics", expanded=(day == "Tuesday")):
                 col1, col2, col3 = st.columns(3)
-
                 with col1:
                     c = st.number_input(f"{day} covers", min_value=0, step=1, key=f"{day}_covers")
                 with col2:
@@ -780,32 +601,23 @@ with tabs[3]:
                 with col3:
                     t = st.number_input(f"{day} target covers", min_value=0, step=5, key=f"{day}_target")
                 
-                # Store inputs in a dictionary to process upon save
                 day_inputs[day] = {"Covers": c, "Revenue": r, "Target": t}
-                
                 if t > 0:
                     achievement = min(c / t, 1)
                     st.progress(achievement, text=f"{c}/{t} covers")
 
         st.divider()
-
         st.subheader("🔥 Super Tuesday Activation")
 
         activation = st.selectbox(
             "Current Tuesday activation",
             ["Tap Tuesday", "Local Hospo Night", "Secret Menu", "Trivia Night", "Live Music", "Other"]
         )
+        description = st.text_area("Tuesday offer / campaign description", placeholder="Example: rotating taps + Tuesday-only food special.")
 
-        description = st.text_area(
-            "Tuesday offer / campaign description",
-            placeholder="Example: rotating taps + Tuesday-only food special."
-        )
-
-        # The Save Button
         restaurant_submit = st.form_submit_button("💾 Save Restaurant Data")
 
         if restaurant_submit:
-            # 1. Update the Monday-Thursday metrics in Restaurant_Data tab
             rest_data = []
             for day in days:
                 rest_data.append({
@@ -816,39 +628,22 @@ with tabs[3]:
                 })
             
             df_rest = pd.DataFrame(rest_data)
-            
-            # Note: This uses update_sheet to OVERWRITE the current week's data 
-            # so your Analytics charts stay clean.
             update_success = update_sheet("Restaurant_Data", df_rest)
 
-            # 2. Append the Tuesday Activation record
             activation_row = {
                 "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "Activation": activation,
                 "Description": description
             }
             
-            activation_success = append_to_sheet(
-                "Tuesday_Activation", 
-                activation_row, 
-                ["Timestamp", "Activation", "Description"]
-            )
+            activation_success = append_to_sheet("Tuesday_Activation", activation_row, ["Timestamp", "Activation", "Description"])
 
             if update_success and activation_success:
                 st.success("✅ Restaurant metrics and Super Tuesday data saved successfully.")
 
-    # --------------------------------------------------------
-    # DISPLAY CURRENT METRICS OUTSIDE THE FORM
-    # --------------------------------------------------------
     st.divider()
+    st.info("Recommendation: test one strong Tuesday proposition for 4–6 weeks and compare incremental covers, revenue, average spend and repeat visits.")
     
-    st.info(
-        "Recommendation: test one strong Tuesday proposition for 4–6 weeks and compare "
-        "incremental covers, revenue, average spend and repeat visits."
-    )
-# --------------------------------------------------------
-    # TUESDAY ACTIVATION HISTORY (CLIENT TRANSPARENCY)
-    # --------------------------------------------------------
     st.divider()
     st.subheader("🗄️ Super Tuesday Activation History")
     
@@ -856,11 +651,7 @@ with tabs[3]:
     tuesday_df = read_sheet("Tuesday_Activation", tuesday_cols)
     
     if not tuesday_df.empty:
-        st.dataframe(
-            tuesday_df.iloc[::-1],
-            use_container_width=True,
-            hide_index=True
-        )
+        st.dataframe(tuesday_df.iloc[::-1], use_container_width=True, hide_index=True)
     else:
         st.info("No Tuesday campaigns have been recorded yet.")
 
@@ -868,212 +659,61 @@ with tabs[3]:
 # 5. CORPORATE B2B
 # ============================================================
 
-with tabs[4]:
+elif selected_page == "💼 Corporate B2B":
 
     st.header("💼 Corporate Theatre B2B")
-
-    st.markdown(
-        "Generate Monday–Thursday corporate and private-event demand."
-    )
-
-    # --------------------------------------------------------
-    # PIPELINE
-    # --------------------------------------------------------
+    st.markdown("Generate Monday–Thursday corporate and private-event demand.")
 
     st.subheader("Corporate Pipeline")
-
     c1, c2, c3, c4, c5, c6 = st.columns(6)
+    pipeline_metrics = [("Prospects", "47"), ("Contacted", "31"), ("Replies", "9"), ("Qualified", "6"), ("Quotes", "4"), ("Booked", "2")]
 
-    pipeline_metrics = [
-        ("Prospects", "47"),
-        ("Contacted", "31"),
-        ("Replies", "9"),
-        ("Qualified", "6"),
-        ("Quotes", "4"),
-        ("Booked", "2")
-    ]
-
-    for col, (label, value) in zip(
-        [c1, c2, c3, c4, c5, c6],
-        pipeline_metrics
-    ):
+    for col, (label, value) in zip([c1, c2, c3, c4, c5, c6], pipeline_metrics):
         with col:
             metric_card(label, value)
 
     st.divider()
-
-    # --------------------------------------------------------
-    # ADD LEAD
-    # --------------------------------------------------------
-
     st.subheader("➕ Add Corporate Lead")
 
     lead_columns = [
-        "Timestamp",
-        "Company",
-        "Contact",
-        "Job Title",
-        "LinkedIn",
-        "Email",
-        "Event Type",
-        "Guests",
-        "Budget",
-        "Status",
-        "Last Contact",
-        "Next Follow-up",
-        "Notes"
+        "Timestamp", "Company", "Contact", "Job Title", "LinkedIn", "Email",
+        "Event Type", "Guests", "Budget", "Status", "Last Contact", "Next Follow-up", "Notes"
     ]
 
     with st.form("corporate_lead_form"):
-
         col1, col2 = st.columns(2)
-
         with col1:
-
             company = st.text_input("Company")
-
             contact = st.text_input("Contact Person")
-
             job_title = st.text_input("Job Title")
-
-            linkedin = st.text_input(
-                "LinkedIn Profile"
-            )
-
+            linkedin = st.text_input("LinkedIn Profile")
             email = st.text_input("Email")
-
         with col2:
-
-            event_type = st.selectbox(
-                "Event Type",
-                [
-                    "Product Launch",
-                    "Conference",
-                    "Awards Night",
-                    "EOFY",
-                    "Christmas Party",
-                    "Team Event",
-                    "Networking",
-                    "Client Entertainment",
-                    "Brand Activation",
-                    "Private Event",
-                    "Other"
-                ]
-            )
-
-            guests = st.number_input(
-                "Estimated Guests",
-                min_value=0,
-                step=10
-            )
-
-            budget = st.number_input(
-                "Estimated Budget ($AUD)",
-                min_value=0,
-                step=500
-            )
-
-            status = st.selectbox(
-                "Pipeline Status",
-                [
-                    "Prospect",
-                    "Contacted",
-                    "Replied",
-                    "Qualified",
-                    "Quote Sent",
-                    "Negotiation",
-                    "Booked",
-                    "Lost"
-                ]
-            )
+            event_type = st.selectbox("Event Type", ["Product Launch", "Conference", "Awards Night", "EOFY", "Christmas Party", "Team Event", "Networking", "Client Entertainment", "Brand Activation", "Private Event", "Other"])
+            guests = st.number_input("Estimated Guests", min_value=0, step=10)
+            budget = st.number_input("Estimated Budget ($AUD)", min_value=0, step=500)
+            status = st.selectbox("Pipeline Status", ["Prospect", "Contacted", "Replied", "Qualified", "Quote Sent", "Negotiation", "Booked", "Lost"])
 
         notes = st.text_area("Notes")
-
-        lead_submit = st.form_submit_button(
-            "Save Corporate Lead"
-        )
+        lead_submit = st.form_submit_button("Save Corporate Lead")
 
         if lead_submit and company:
-
             row = {
-                "Timestamp": datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
-                "Company": company,
-                "Contact": contact,
-                "Job Title": job_title,
-                "LinkedIn": linkedin,
-                "Email": email,
-                "Event Type": event_type,
-                "Guests": guests,
-                "Budget": budget,
-                "Status": status,
-                "Last Contact": "",
-                "Next Follow-up": "",
-                "Notes": notes
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Company": company, "Contact": contact, "Job Title": job_title,
+                "LinkedIn": linkedin, "Email": email, "Event Type": event_type,
+                "Guests": guests, "Budget": budget, "Status": status,
+                "Last Contact": "", "Next Follow-up": "", "Notes": notes
             }
+            if append_to_sheet("Corporate_Leads", row, lead_columns):
+                st.success("✅ Corporate lead saved.")
 
-            if append_to_sheet(
-                "Corporate_Leads",
-                row,
-                lead_columns
-            ):
-                st.success(
-                    "✅ Corporate lead saved."
-                )
-
-    st.divider()
-
-    # --------------------------------------------------------
-    # LINKEDIN OUTBOUND
-    # --------------------------------------------------------
-
-    st.subheader("🔗 Organic LinkedIn Outreach")
-
-    l1, l2, l3, l4, l5 = st.columns(5)
-
-    with l1:
-        metric_card("Prospects Researched", "18")
-
-    with l2:
-        metric_card("Connections Sent", "15")
-
-    with l3:
-        metric_card("Accepted", "8")
-
-    with l4:
-        metric_card("Replies", "4")
-
-    with l5:
-        metric_card("Qualified", "2")
-
-    st.markdown("""
-    **Target profiles**
-
-    - HR Managers
-    - People & Culture
-    - Executive Assistants
-    - Office Managers
-    - Marketing Managers
-    - Event Managers
-    - Event Agencies
-    - Conference Organisers
-    """)
-# --------------------------------------------------------
-    # CORPORATE LEADS HISTORY (CLIENT TRANSPARENCY)
-    # --------------------------------------------------------
     st.divider()
     st.subheader("🗄️ Corporate Leads History")
-    
     leads_df = read_sheet("Corporate_Leads", lead_columns)
     
     if not leads_df.empty:
-        # Reverse the dataframe to show newest first
-        st.dataframe(
-            leads_df.iloc[::-1],
-            use_container_width=True,
-            hide_index=True
-        )
+        st.dataframe(leads_df.iloc[::-1], use_container_width=True, hide_index=True)
     else:
         st.info("No corporate leads have been recorded yet.")
 
@@ -1081,27 +721,15 @@ with tabs[4]:
 # 6. CONTENT STUDIO
 # ============================================================
 
-with tabs[5]:
+elif selected_page == "🎬 Content Studio":
 
     st.header("🎬 Content Studio")
-
-    content_columns = [
-        "Timestamp", "Brand", "Content Type", "Title", 
-        "Hook", "Platform", "Status", "Publish Date", "Client Notes"
-    ]
-    
-    # Fetch data first so both views can use it
+    content_columns = ["Timestamp", "Brand", "Content Type", "Title", "Hook", "Platform", "Status", "Publish Date", "Client Notes"]
     content_df = read_sheet("Content", content_columns)
 
-    # ========================================================
-    # 1. MARKETING MANAGER VIEW (Creation & Revisions)
-    # ========================================================
     if view_mode == "Marketing Manager":
-        
-        # A. Draft New Content Form
         with st.form("content_form"):
             st.subheader("➕ Draft New Content")
-            
             col1, col2 = st.columns(2)
             with col1:
                 brand = st.selectbox("Brand", ["Thornbury Taphouse", "Thornbury Theatre", "Both"])
@@ -1110,7 +738,6 @@ with tabs[5]:
             with col2:
                 platform = st.multiselect("Platform", ["Instagram", "Facebook", "TikTok", "LinkedIn"])
                 publish_date = st.date_input("Publish Date", value=date.today())
-                # Default new items to "In Review" so they go straight to the client
                 status = st.selectbox("Status", ["In Review", "Draft", "Scheduled", "Published"])
                 
             hook = st.text_area("Post Copy / First 3 Seconds")
@@ -1121,60 +748,40 @@ with tabs[5]:
             if content_submit and title:
                 row = {
                     "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "Brand": brand,
-                    "Content Type": content_type,
-                    "Title": title,
-                    "Hook": hook,
-                    "Platform": ", ".join(platform),
-                    "Status": status,
-                    "Publish Date": str(publish_date),
-                    "Client Notes": client_notes
+                    "Brand": brand, "Content Type": content_type, "Title": title,
+                    "Hook": hook, "Platform": ", ".join(platform), "Status": status,
+                    "Publish Date": str(publish_date), "Client Notes": client_notes
                 }
-
                 if append_to_sheet("Content", row, content_columns):
                     st.success("✅ Content sent to client for approval.")
                     st.rerun()
 
         st.divider()
-
-        # B. Revisions Queue (Only visible to the Manager)
         st.subheader("⚠️ Revisions Needed")
         
         if not content_df.empty:
             revisions_df = content_df[content_df["Status"] == "Changes Requested"]
-            
             if revisions_df.empty:
                 st.info("No content currently requires your revision.")
             else:
                 for idx, row in revisions_df.iterrows():
                     with st.expander(f"Fix: {row['Title']} (Feedback from Client)", expanded=True):
                         st.error(f"**Client Feedback:** {row['Client Notes']}")
-                        
-                        # Let the manager edit the actual content
                         new_hook = st.text_area("Update the copy/hook:", value=row['Hook'], key=f"edit_hook_{idx}")
                         manager_reply = st.text_input("Reply to client (optional):", key=f"reply_{idx}")
                         
                         if st.button("📤 Send Back for Approval", key=f"resend_{idx}", type="primary"):
                             content_df.at[idx, "Hook"] = new_hook
                             content_df.at[idx, "Status"] = "In Review"
-                            
-                            # Combine the chat history in the notes column
                             if manager_reply:
                                 content_df.at[idx, "Client Notes"] = f"Agency Reply: {manager_reply} | Prior Feedback: {row['Client Notes']}"
-                            
                             if update_sheet("Content", content_df):
                                 st.rerun()
         st.divider()
 
-
-    # ========================================================
-    # 2. APPROVAL QUEUE (Visible to Everyone)
-    # ========================================================
     st.subheader("✅ Needs Client Approval")
-    
     if not content_df.empty:
         pending_df = content_df[content_df["Status"] == "In Review"]
-        
         if pending_df.empty:
             st.success("🎉 All caught up! No content is currently waiting for approval.")
         else:
@@ -1182,16 +789,10 @@ with tabs[5]:
                 with st.expander(f"📝 {row['Title']} (Scheduled: {row['Publish Date']})", expanded=True):
                     st.markdown(f"**Brand:** {row['Brand']} | **Platform:** {row['Platform']}")
                     st.markdown(f"**Copy/Concept:** {row['Hook']}")
-                    
                     if row['Client Notes']:
                         st.info(f"**Notes:** {row['Client Notes']}")
                     
-                    # Blank input for fresh client feedback
-                    client_feedback = st.text_input(
-                        "Add feedback or request changes:", 
-                        key=f"client_fb_{idx}"
-                    )
-                    
+                    client_feedback = st.text_input("Add feedback or request changes:", key=f"client_fb_{idx}")
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.button("✅ Approve Content", key=f"approve_{idx}", type="primary"):
@@ -1200,10 +801,8 @@ with tabs[5]:
                                 content_df.at[idx, "Client Notes"] = client_feedback
                             if update_sheet("Content", content_df):
                                 st.rerun()
-                    
                     with col2:
                         if st.button("🔄 Request Changes", key=f"reject_{idx}"):
-                            # Prevent sending back without actual feedback
                             if not client_feedback:
                                 st.warning("Please type your feedback in the box before requesting changes.")
                             else:
@@ -1214,18 +813,10 @@ with tabs[5]:
     else:
         st.info("No content pipeline has been established yet.")
 
-    # ========================================================
-    # 3. HISTORY TABLE (Visible to Everyone)
-    # ========================================================
     st.divider()
     st.subheader("🗄️ Content Pipeline History")
-    
     if not content_df.empty:
-        st.dataframe(
-            content_df.iloc[::-1],
-            use_container_width=True,
-            hide_index=True
-        )
+        st.dataframe(content_df.iloc[::-1], use_container_width=True, hide_index=True)
     else:
         st.info("No content has been added yet.")
 
@@ -1233,21 +824,16 @@ with tabs[5]:
 # 7. CRM & LOYALTY
 # ============================================================
 
-with tabs[6]:
+elif selected_page == "📧 CRM & Loyalty":
 
     st.header("📧 CRM & Loyalty")
     st.markdown("Build a first-party customer database and increase repeat visits.")
 
-    # Fetch existing data to show the latest metrics
-    crm_columns = [
-        "Timestamp", "Database Size", "New Subscribers", 
-        "Open Rate", "Email Bookings", "Active Segments"
-    ]
+    crm_columns = ["Timestamp", "Database Size", "New Subscribers", "Open Rate", "Email Bookings", "Active Segments"]
     crm_df = read_sheet("CRM_Data", crm_columns)
 
     if not crm_df.empty:
         latest_crm = crm_df.iloc[-1]
-        
         st.subheader("Current Performance")
         c1, c2, c3, c4 = st.columns(4)
         with c1:
@@ -1261,12 +847,9 @@ with tabs[6]:
             
     st.divider()
 
-    # Form to input and save new data
     with st.form("crm_form"):
         st.subheader("Update CRM Metrics")
-        
         col1, col2, col3, col4 = st.columns(4)
-        
         with col1:
             db_size = st.number_input("Customer Database Size", min_value=0, step=10)
         with col2:
@@ -1277,63 +860,30 @@ with tabs[6]:
             email_bookings = st.number_input("Bookings from Email", min_value=0, step=1)
 
         st.divider()
-
         st.subheader("Thornbury Insider & Segments")
-
-        st.markdown("""
-        **Potential member benefits**
-        - Early access to shows
-        - Special weekday offers
-        - Birthday reward
-        - Exclusive events
-        - Member-only experiences
-        - Ticket presales
-        """)
+        st.markdown("**Potential member benefits**\n- Early access to shows\n- Special weekday offers\n- Birthday reward\n- Exclusive events\n- Member-only experiences\n- Ticket presales")
 
         segments = st.multiselect(
             "Active CRM segments",
-            [
-                "Restaurant Customers",
-                "Theatre Customers",
-                "Restaurant + Theatre Customers",
-                "Corporate Leads",
-                "VIP / Repeat Customers"
-            ],
+            ["Restaurant Customers", "Theatre Customers", "Restaurant + Theatre Customers", "Corporate Leads", "VIP / Repeat Customers"],
             default=["Restaurant Customers", "Theatre Customers"]
         )
 
         crm_submit = st.form_submit_button("💾 Save CRM Data")
-
         if crm_submit:
             row = {
                 "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Database Size": db_size,
-                "New Subscribers": new_subs,
-                "Open Rate": f"{open_rate}%",
-                "Email Bookings": email_bookings,
+                "Database Size": db_size, "New Subscribers": new_subs,
+                "Open Rate": f"{open_rate}%", "Email Bookings": email_bookings,
                 "Active Segments": ", ".join(segments)
             }
-
             if append_to_sheet("CRM_Data", row, crm_columns):
-                st.success("✅ CRM & Loyalty data saved successfully. Refresh to see updated metrics.")
+                st.success("✅ CRM & Loyalty data saved successfully.")
 
-    st.info(
-        "Use the existing customer database where legally permitted "
-        "and ensure marketing communications have appropriate consent."
-    )
-# --------------------------------------------------------
-    # CRM HISTORY (CLIENT TRANSPARENCY)
-    # --------------------------------------------------------
     st.divider()
     st.subheader("🗄️ CRM Growth History")
-    
-    # We fetch it again here or use the crm_df already loaded at the top
     if not crm_df.empty:
-        st.dataframe(
-            crm_df.iloc[::-1],
-            use_container_width=True,
-            hide_index=True
-        )
+        st.dataframe(crm_df.iloc[::-1], use_container_width=True, hide_index=True)
     else:
         st.info("No CRM data has been recorded yet.")
 
@@ -1341,101 +891,90 @@ with tabs[6]:
 # 8. ANALYTICS
 # ============================================================
 
-with tabs[7]:
+elif selected_page == "📊 Analytics":
 
-    st.header("📊 Marketing Performance Dashboard")
+    if view_mode == "Marketing Manager":
+        st.header("📊 Marketing Performance Dashboard")
+        st.caption("Use this area for validated business data.")
+        
+        st.subheader("🍽️ Restaurant KPIs")
+        restaurant_data = read_sheet("Restaurant_Data", ["Day", "Covers", "Target", "Revenue"])
+        st.dataframe(restaurant_data, use_container_width=True, hide_index=True)
 
-    st.caption(
-        "Use this area for validated business data. "
-        "Demo values below should be replaced with connected data."
-    )
+        if not restaurant_data.empty:
+            st.bar_chart(restaurant_data.set_index("Day")[["Covers", "Target"]])
 
-    # --------------------------------------------------------
-    # RESTAURANT
-    # --------------------------------------------------------
+        st.divider()
+        st.subheader("💼 Theatre KPIs")
+        theatre_data = pd.DataFrame({"Metric": ["Corporate Enquiries", "Qualified Leads", "Quotes", "Bookings"], "Current": [18, 6, 4, 2]})
+        st.dataframe(theatre_data, use_container_width=True, hide_index=True)
 
-    st.subheader("🍽️ Restaurant KPIs")
-    
-    restaurant_data = read_sheet("Restaurant_Data", ["Day", "Covers", "Target", "Revenue"])
+        st.divider()
+        st.subheader("📈 Marketing KPIs")
+        m1, m2, m3, m4 = st.columns(4)
+        with m1: metric_card("Website Visitors", "—")
+        with m2: metric_card("Booking Conversion", "—")
+        with m3: metric_card("Cost per Lead", "—")
+        with m4: metric_card("ROAS", "—")
 
-    st.dataframe(
-        restaurant_data,
-        use_container_width=True,
-        hide_index=True
-    )
+        st.divider()
+        st.subheader("🔗 UTM Tracking Link Generator & History")
+        utm_columns = ["Timestamp", "Campaign Name", "Destination URL", "Source", "Medium", "Final UTM URL"]
 
-    st.bar_chart(
-        restaurant_data.set_index("Day")[
-            ["Covers", "Target"]
-        ]
-    )
+        with st.form("utm_builder_form"):
+            base_url = st.text_input("Destination URL (Required)", placeholder="https://www.thornbury.com/corporate-events")
+            c1, c2, c3 = st.columns(3)
+            with c1: utm_source = st.text_input("Source (Required)", placeholder="meta, google")
+            with c2: utm_medium = st.text_input("Medium (Required)", placeholder="cpc, social")
+            with c3: utm_campaign = st.text_input("Campaign Name (Required)", placeholder="xmas_2026")
+            
+            generate_utm = st.form_submit_button("🔨 Generate & Save Tracking Link")
 
-    st.divider()
+            if generate_utm:
+                if base_url and utm_source and utm_medium and utm_campaign:
+                    import urllib.parse
+                    base_url = base_url.strip()
+                    if not base_url.startswith('http'):
+                        base_url = 'https://' + base_url
+                    clean_campaign = utm_campaign.strip().replace(" ", "_").lower()
+                    params = {'utm_source': utm_source.strip().lower(), 'utm_medium': utm_medium.strip().lower(), 'utm_campaign': clean_campaign}
+                    query_string = urllib.parse.urlencode(params)
+                    separator = '&' if '?' in base_url else '?'
+                    final_url = f"{base_url}{separator}{query_string}"
+                    
+                    row = {
+                        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "Campaign Name": clean_campaign, "Destination URL": base_url,
+                        "Source": utm_source.strip().lower(), "Medium": utm_medium.strip().lower(), "Final UTM URL": final_url
+                    }
+                    if append_to_sheet("UTM_Links", row, utm_columns):
+                        st.success("✅ Tracking link saved!")
+                        time.sleep(1)
+                        st.rerun()
+                else:
+                    st.error("⚠️ Please fill in all required fields.")
 
-    # --------------------------------------------------------
-    # THEATRE
-    # --------------------------------------------------------
-
-    st.subheader("💼 Theatre KPIs")
-
-    theatre_data = pd.DataFrame({
-        "Metric": [
-            "Corporate Enquiries",
-            "Qualified Leads",
-            "Quotes",
-            "Bookings"
-        ],
-        "Current": [
-            18,
-            6,
-            4,
-            2
-        ]
-    })
-
-    st.dataframe(
-        theatre_data,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    st.divider()
-
-    # --------------------------------------------------------
-    # MARKETING
-    # --------------------------------------------------------
-
-    st.subheader("📈 Marketing KPIs")
-
-    m1, m2, m3, m4 = st.columns(4)
-
-    with m1:
-        metric_card("Website Visitors", "—")
-
-    with m2:
-        metric_card("Booking Conversion", "—")
-
-    with m3:
-        metric_card("Cost per Lead", "—")
-
-    with m4:
-        metric_card("ROAS", "—")
+        st.markdown("### 🗄️ Previously Generated Links")
+        utm_df = read_sheet("UTM_Links", utm_columns)
+        if not utm_df.empty:
+            st.dataframe(utm_df.iloc[::-1], use_container_width=True, hide_index=True)
+        else:
+            st.info("No tracking links have been generated yet.")
+    else:
+        st.info("🔒 Analytics and granular performance data are restricted to the Marketing Team.")
 
 # ============================================================
 # 9. 90-DAY ROADMAP
 # ============================================================
 
-with tabs[8]:
+elif selected_page == "🗓️ 90-Day Roadmap":
 
     st.header("🗓️ 90-Day Growth Sprint")
     st.markdown("Track the project week by week.")
 
-    # 1. Fetch existing saved progress from Google Sheets
     roadmap_columns = ["Task", "Completed"]
     roadmap_df = read_sheet("Roadmap_Data", roadmap_columns)
     
-    # Convert the saved data into a dictionary for easy lookup
-    # 'Completed' comes back as a string ('True' or 'False') from Google Sheets
     saved_status = {}
     if not roadmap_df.empty:
         saved_status = dict(zip(roadmap_df['Task'], roadmap_df['Completed'].astype(str) == 'True'))
@@ -1463,50 +1002,27 @@ with tabs[8]:
 
     total_tasks = sum(len(tasks) for tasks in phases.values())
 
-    # 2. Build the Form
     with st.form("roadmap_form"):
-        
         completed_tasks = 0
         current_states = {}
 
         for phase, tasks in phases.items():
             st.subheader(phase)
-
             for task in tasks:
-                # Look up if this task was previously saved as True
                 default_val = saved_status.get(task, False)
-                
                 done = st.checkbox(task, value=default_val, key=f"roadmap_{task}")
                 current_states[task] = done
-                
                 if done:
                     completed_tasks += 1
 
         st.divider()
-
         progress = (completed_tasks / total_tasks) if total_tasks > 0 else 0
-
-        st.progress(
-            progress,
-            text=f"{completed_tasks}/{total_tasks} milestones completed — {progress:.0%}"
-        )
-
+        st.progress(progress, text=f"{completed_tasks}/{total_tasks} milestones completed — {progress:.0%}")
+        
         roadmap_submit = st.form_submit_button("💾 Save Roadmap Progress")
-
-        # 3. Save logic
         if roadmap_submit:
-            # Convert the current checkbox states into a DataFrame
-            new_roadmap_data = []
-            for task_name, is_done in current_states.items():
-                new_roadmap_data.append({
-                    "Task": task_name,
-                    "Completed": is_done
-                })
-            
-            df_roadmap = pd.DataFrame(new_roadmap_data)
-            
-            # Overwrite the sheet so it acts as a permanent state tracker
-            if update_sheet("Roadmap_Data", df_roadmap):
+            new_roadmap_data = [{"Task": task_name, "Completed": is_done} for task_name, is_done in current_states.items()]
+            if update_sheet("Roadmap_Data", pd.DataFrame(new_roadmap_data)):
                 st.success("✅ Roadmap progress saved successfully!")
 
 # ============================================================
@@ -1514,8 +1030,4 @@ with tabs[8]:
 # ============================================================
 
 st.divider()
-
-st.caption(
-    "Thornbury Growth Command Centre • "
-    "Restaurant + Theatre + Corporate Growth"
-)
+st.caption("Thornbury Growth Command Centre • Restaurant + Theatre + Corporate Growth")
